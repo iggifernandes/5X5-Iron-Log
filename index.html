@@ -374,6 +374,17 @@ function decompose(target, plates){
   }
   return {pieces:used, remainder:remaining};
 }
+function todayLocal(){
+  // Uses the device's LOCAL date, not UTC — toISOString() alone shifts to the
+  // previous calendar day during early morning hours in timezones ahead of UTC
+  // (e.g. WIB, UTC+7), which was blocking correct date entry/editing.
+  const d = new Date();
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth()+1).padStart(2,"0");
+  const dd = String(d.getDate()).padStart(2,"0");
+  return `${yyyy}-${mm}-${dd}`;
+}
+
 function fmt(n){
   if(n===undefined||n===null||isNaN(n)) return "-";
   return Number.isInteger(n) ? String(n) : n.toFixed(2).replace(/0+$/,"").replace(/\.$/,"");
@@ -442,6 +453,13 @@ function saveStore(){
   state._lastLocalChange = new Date().toISOString();
   try{ localStorage.setItem(STORE_KEY, JSON.stringify(state)); }catch(e){}
   queueRemotePush();
+}
+// Used ONLY for one-time schema migrations at load time. These must never look
+// like a real, timestamped user change — otherwise a device that's simply
+// running an older local copy can wrongly appear "more recent" than a sheet
+// that actually has newer data from another device, and clobber it on push.
+function saveStoreLocalOnly(){
+  try{ localStorage.setItem(STORE_KEY, JSON.stringify(state)); }catch(e){}
 }
 
 /* ---------------- Google Sheets sync ---------------- */
@@ -531,7 +549,7 @@ if(!state.settings.aug14Restored){
     ];
   }
   state.settings.aug14Restored = true;
-  saveStore();
+  saveStoreLocalOnly();
 }
 if(!state.settings.curlPerSideMigrated){
   // Bicep curl switched from total-bar tracking to per-side tracking, starting at 0.25kg/side.
@@ -539,18 +557,18 @@ if(!state.settings.curlPerSideMigrated){
   state.settings.current.curl = 0.25;
   state.settings.onHold.curl = false;
   state.settings.curlPerSideMigrated = true;
-  saveStore();
+  saveStoreLocalOnly();
 }
 if(!state.settings.tricepPerSideMigrated){
   // Same switch for close-grip tricep press: total-bar tracking -> per-side, starting at 0.25kg/side.
   state.settings.current.tricep = 0.25;
   state.settings.onHold.tricep = false;
   state.settings.tricepPerSideMigrated = true;
-  saveStore();
+  saveStoreLocalOnly();
 }
 const EXERCISE_OPTIONS = ["Weighted Pull-ups","Side Bends","Cable Crunches","Leg Rise","Dips","Calf Press (Cream)","Calf Press (Cone)"];
 
-let ui = { tab:"today", logDraft:null, progressLift:"sq", expandedSession:null, confirmDeleteId:null, todayOverrides:{}, todayExtras:null, peekingTomorrow:false, editingSessionId:null, restDayDate:null };
+let ui = { tab:"today", logDraft:null, progressLift:"sq", expandedSession:null, confirmDeleteId:null, todayOverrides:{}, todayExtras:null, peekingTomorrow:false, editingSessionId:null, restDayDate:null, historySortDir:"desc" };
 
 /* ---------------- render helpers ---------------- */
 function el(tag, attrs, children){
@@ -832,10 +850,10 @@ function renderToday(main){
     }
     content.appendChild(el("button",{class:"btn btn-primary", style:"margin-top:4px;", onClick:()=>{ startLog(nextType); }},[t("logThisSession",lang)]));
 
-    if(ui.restDayDate===null || ui.restDayDate===undefined){ ui.restDayDate = new Date().toISOString().slice(0,10); }
+    if(ui.restDayDate===null || ui.restDayDate===undefined){ ui.restDayDate = todayLocal(); }
     const restAlready = restLoggedForDate(ui.restDayDate);
     const restRow = el("div",{class:"restRow"});
-    const dateIn = el("input",{type:"date", value:ui.restDayDate, max:new Date().toISOString().slice(0,10), onChange:(e)=>{ ui.restDayDate = e.target.value; paintEditable(); }});
+    const dateIn = el("input",{type:"date", value:ui.restDayDate, max:todayLocal(), onChange:(e)=>{ ui.restDayDate = e.target.value; paintEditable(); }});
     restRow.appendChild(dateIn);
     const restBtnAttrs = { class:"btn btn-ghost"+(restAlready?" disabledBtn":""), style:"flex:1;" };
     if(!restAlready) restBtnAttrs.onClick = ()=>{ logRestDay(ui.restDayDate); paintEditable(); };
@@ -903,7 +921,7 @@ function restLoggedForDate(dateStr){
 }
 
 function logRestDay(dateStr){
-  const d = dateStr || new Date().toISOString().slice(0,10);
+  const d = dateStr || todayLocal();
   if(restLoggedForDate(d)) return; // already logged once for this date — no duplicates
   const record = { id:"rest-"+Date.now(), date:d, type:"REST", notes:"", extra:[], lifts:{} };
   state.sessions = [record, ...state.sessions];
@@ -937,7 +955,7 @@ function startLog(type){
   const liftsForType = Object.values(LIFTS).filter(l=>l.workouts.includes(type));
   const plan = state.plannedSession && state.plannedSession.type===type ? state.plannedSession : null;
   const extraSource = ui.todayExtras!==null ? ui.todayExtras : (plan ? (plan.extra||[]) : []);
-  const draft = { date:new Date().toISOString().slice(0,10), type, notes: plan?plan.notes||"":"", extra:[...extraSource], lifts:{} };
+  const draft = { date:todayLocal(), type, notes: plan?plan.notes||"":"", extra:[...extraSource], lifts:{} };
   liftsForType.forEach(l=>{
     const planned = plan && plan.lifts[l.key];
     const overrideVal = ui.todayOverrides[l.key];
@@ -988,13 +1006,13 @@ function renderLog(main){
   const draft = ui.logDraft;
   const liftsForType = Object.values(LIFTS).filter(l=>l.workouts.includes(draft.type));
   if(!draft.date){
-    draft.date = new Date().toISOString().slice(0,10); // only set once, when the draft is first created
+    draft.date = todayLocal(); // only set once, when the draft is first created
   }
 
   const editingLbl = lang==="en" ? "Editing" : "Mengubah";
   const eyebrowRow = el("div",{class:"eyebrow"},[ el("span",{class:"dot"}) ]);
   const dateIn = el("input",{
-    type:"date", value:draft.date, max:new Date().toISOString().slice(0,10),
+    type:"date", value:draft.date, max:todayLocal(),
     onChange:(e)=>{ draft.date = e.target.value; render(); }
   });
   eyebrowRow.appendChild(dateIn);
@@ -1390,11 +1408,18 @@ function chartSvg(rows){
   return el("div",{class:"chartBox"},[svg]);
 }
 
+function sortedSessions(){
+  // Newest-first by actual date, not insertion order — insertion order breaks
+  // once a backdated/missed session gets logged after the fact.
+  return [...state.sessions].sort((a,b)=> b.date.localeCompare(a.date) || String(b.id).localeCompare(String(a.id)));
+}
+
 function isPR(key, value, beforeSessionId){
-  // True if `value` beats every earlier clean session's value for this lift.
+  // True if `value` beats every earlier (by date) clean session's value for this lift.
+  const ordered = sortedSessions();
   let seenSelf = beforeSessionId===undefined;
   let best = -Infinity;
-  for(const s of state.sessions){
+  for(const s of ordered){
     if(!seenSelf){ if(s.id===beforeSessionId){ seenSelf=true; } continue; }
     const d = s.lifts && s.lifts[key];
     if(d && d.status==="clean" && d.value>best) best = d.value;
@@ -1403,10 +1428,11 @@ function isPR(key, value, beforeSessionId){
 }
 
 function stalledLifts(){
-  // A lift counts as stalled if its 2 most recent logged attempts were both missed (not clean).
+  // A lift counts as stalled if its 2 most recent (by date) logged attempts were both missed.
+  const ordered = sortedSessions();
   const stalled = [];
   Object.keys(LIFTS).forEach(key=>{
-    const recent = state.sessions.filter(s=>s.lifts && s.lifts[key]).slice(0,2);
+    const recent = ordered.filter(s=>s.lifts && s.lifts[key]).slice(0,2);
     if(recent.length===2 && recent.every(s=>s.lifts[key].status==="missed")){
       stalled.push(key);
     }
@@ -1426,12 +1452,14 @@ function sessionTonnage(session){
 }
 
 function currentStreak(){
-  // Consecutive calendar days, counting back from the most recent logged day, with something logged.
+  // Consecutive calendar days, counting back from the most recent LOGGED DATE (not
+  // insertion order), with something logged.
   const days = new Set(state.sessions.map(s=>s.date));
   if(days.size===0) return 0;
+  const mostRecentDate = sortedSessions()[0].date;
   let streak = 0;
-  let cursor = new Date(state.sessions[0].date+"T00:00:00");
-  while(days.has(cursor.toISOString().slice(0,10))){
+  let cursor = new Date(mostRecentDate+"T00:00:00");
+  while(days.has(`${cursor.getFullYear()}-${String(cursor.getMonth()+1).padStart(2,"0")}-${String(cursor.getDate()).padStart(2,"0")}`)){
     streak++;
     cursor.setDate(cursor.getDate()-1);
   }
@@ -1467,7 +1495,7 @@ function renderHistory(main){
     return;
   }
 
-  const latest = state.sessions[0];
+  const latest = sortedSessions()[0];
   const isSaturday = new Date(latest.date+"T00:00:00").getDay()===6;
   if(isSaturday){
     const wk = computeWeekSummary(latest.date);
@@ -1521,9 +1549,20 @@ function renderHistory(main){
     });
     main.appendChild(painListCard);
   }
-  main.appendChild(el("div",{class:"mono", style:"font-size:11px; color:var(--text-faint); margin-bottom:10px;"},[`${state.sessions.length} ${t("sessionsLogged",lang)}`]));
+  const countRow = el("div",{style:"display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;"});
+  countRow.appendChild(el("span",{class:"mono", style:"font-size:11px; color:var(--text-faint);"},[`${state.sessions.length} ${t("sessionsLogged",lang)}`]));
+  if(!ui.historySortDir) ui.historySortDir = "desc";
+  const sortLbl = ui.historySortDir==="desc"
+    ? (lang==="en" ? "Newest first ↓" : "Terbaru dulu ↓")
+    : (lang==="en" ? "Oldest first ↑" : "Terlama dulu ↑");
+  countRow.appendChild(el("button",{class:"resetBtn", onClick:()=>{
+    ui.historySortDir = ui.historySortDir==="desc" ? "asc" : "desc";
+    render();
+  }},[sortLbl]));
+  main.appendChild(countRow);
 
-  state.sessions.forEach(s=>{
+  const orderedSessions = ui.historySortDir==="desc" ? sortedSessions() : [...sortedSessions()].reverse();
+  orderedSessions.forEach(s=>{
     const isOpen = ui.expandedSession===s.id;
     const item = el("div",{class:"histItem"});
     const head = el("button",{class:"histHead", onClick:()=>{ ui.expandedSession = isOpen?null:s.id; render(); }},[
@@ -1642,7 +1681,7 @@ function renderMeasurements(main){
     const w = weightIn.value ? parseFloat(weightIn.value) : null;
     const waist = waistIn.value ? parseFloat(waistIn.value) : null;
     if(w===null && waist===null && !photoData) return;
-    const entry = { id:"m-"+Date.now(), date:new Date().toISOString().slice(0,10), weight:w, waist:waist, photo:photoData };
+    const entry = { id:"m-"+Date.now(), date:todayLocal(), weight:w, waist:waist, photo:photoData };
     state.measurements = [entry, ...state.measurements];
     saveStore();
     render();
@@ -1725,7 +1764,7 @@ function renderSettings(main){
       : "Memuat cadangan di sini akan mengganti semua data di perangkat ini dengan isi file — gunakan untuk memindahkan data dari HP ke laptop (atau sebaliknya)."
   ]));
   const importStatus = el("div",{style:"font-size:10px; color:var(--emerald); margin-top:6px; display:none;"});
-  const importIn = el("input",{type:"file", accept:"application/json", style:"font-size:11px;"});
+  const importIn = el("input",{type:"file", accept:".json,application/json", style:"font-size:11px;"});
   importIn.addEventListener("change",()=>{
     const file = importIn.files[0];
     if(!file) return;
