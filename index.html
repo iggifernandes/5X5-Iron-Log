@@ -438,7 +438,79 @@ function loadStore(){
     sessions:[...SEEDED_SESSIONS].reverse()
   };
 }
-function saveStore(){ try{ localStorage.setItem(STORE_KEY, JSON.stringify(state)); }catch(e){} }
+function saveStore(){
+  state._lastLocalChange = new Date().toISOString();
+  try{ localStorage.setItem(STORE_KEY, JSON.stringify(state)); }catch(e){}
+  queueRemotePush();
+}
+
+/* ---------------- Google Sheets sync ---------------- */
+const SYNC_URL = "https://script.google.com/macros/s/AKfycby5gfyDxkdQcxjlB8XxBIz5RXP0mq7uCezV9py_orqhuabw2ADJ-xOBl2HMEVt46SvR/exec";
+let syncStatus = "idle"; // idle | syncing | synced | error | offline
+let _pushTimer = null;
+
+function setSyncStatus(s){
+  syncStatus = s;
+  const el = document.getElementById("syncIndicator");
+  if(el) el.textContent = syncStatusLabel(s);
+}
+function syncStatusLabel(s){
+  const lang = (state && state.settings && state.settings.lang) || "en";
+  const map = {
+    idle: lang==="en" ? "Not synced yet" : "Belum sinkron",
+    syncing: lang==="en" ? "Syncing…" : "Menyinkronkan…",
+    synced: lang==="en" ? "Synced" : "Tersinkron",
+    error: lang==="en" ? "Sync failed" : "Sinkron gagal",
+  };
+  return map[s] || s;
+}
+
+function queueRemotePush(){
+  if(_pushTimer) clearTimeout(_pushTimer);
+  _pushTimer = setTimeout(pushToRemote, 900); // debounce rapid successive saves
+}
+
+async function pushToRemote(){
+  try{
+    setSyncStatus("syncing");
+    await fetch(SYNC_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" }, // avoids a CORS preflight Apps Script can't handle
+      body: JSON.stringify({ state: JSON.stringify(state) }),
+    });
+    setSyncStatus("synced");
+  }catch(e){
+    setSyncStatus("error");
+  }
+}
+
+async function pullFromRemote(){
+  try{
+    setSyncStatus("syncing");
+    const res = await fetch(SYNC_URL, { method:"GET" });
+    const data = await res.json();
+    if(!data || !data.state) { setSyncStatus("synced"); return; }
+    const remoteUpdatedAt = data.updatedAt;
+    const localUpdatedAt = state._lastLocalChange;
+    const remoteIsNewer = remoteUpdatedAt && (!localUpdatedAt || new Date(remoteUpdatedAt) > new Date(localUpdatedAt));
+    if(remoteIsNewer){
+      const remoteState = JSON.parse(data.state);
+      remoteState._lastLocalChange = remoteUpdatedAt;
+      state = remoteState;
+      if(state.plannedSession===undefined) state.plannedSession = null;
+      if(state.painLog===undefined) state.painLog = [];
+      if(state.measurements===undefined) state.measurements = [];
+      try{ localStorage.setItem(STORE_KEY, JSON.stringify(state)); }catch(e){}
+      setSyncStatus("synced");
+      render();
+    } else {
+      setSyncStatus("synced");
+      pushToRemote(); // make sure remote has our (equally or more current) copy
+    }
+  }catch(e){
+    setSyncStatus("error");
+  }
+}
 
 let state = loadStore();
 if(state.plannedSession === undefined) state.plannedSession = null;
@@ -1612,6 +1684,19 @@ function renderMeasurements(main){
 function renderSettings(main){
   const lang = state.settings.lang;
 
+  const syncSec = el("div",{class:"settingsSection"});
+  syncSec.appendChild(el("div",{class:"lbl"},[lang==="en"?"Cloud Sync":"Sinkronisasi Awan"]));
+  const syncRow = el("div",{style:"display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;"});
+  syncRow.appendChild(el("span",{id:"syncIndicator", class:"mono", style:"font-size:11px; color:var(--text-dim);"},[syncStatusLabel(syncStatus)]));
+  syncRow.appendChild(el("button",{class:"btn btn-ghost", style:"padding:6px 12px; width:auto;", onClick:pullFromRemote},[ lang==="en"?"↻ Sync now":"↻ Sinkron sekarang" ]));
+  syncSec.appendChild(syncRow);
+  syncSec.appendChild(el("div",{style:"font-size:10px; color:var(--text-faint); line-height:1.4;"},[
+    lang==="en"
+      ? "Every save pushes to your Google Sheet automatically, and opening the app pulls the latest version. Both devices need this same app version to stay in sync."
+      : "Setiap penyimpanan otomatis dikirim ke Google Sheet, dan membuka aplikasi menarik versi terbaru. Kedua perangkat perlu versi aplikasi yang sama agar tetap sinkron."
+  ]));
+  main.appendChild(syncSec);
+
   const sec0 = el("div",{class:"settingsSection"});
   sec0.appendChild(el("div",{class:"lbl"},[lang==="en"?"Backup":"Cadangan"]));
   sec0.appendChild(el("div",{style:"font-size:11px; color:var(--text-faint); margin-bottom:8px; line-height:1.5;"},[
@@ -1787,6 +1872,7 @@ document.addEventListener("touchcancel", releasePeek);
 document.addEventListener("mouseup", releasePeek);
 
 render();
+pullFromRemote();
 
 if("serviceWorker" in navigator){
   window.addEventListener("load", ()=>{
