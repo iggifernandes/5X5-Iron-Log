@@ -121,7 +121,7 @@
     flex:1; display:flex; align-items:center; justify-content:center;
     background:var(--surface); border:1px solid var(--surface-alt); border-bottom:none;
     border-radius:5px 5px 0 0; padding:5px 4px; cursor:pointer;
-    font-family:'SF Mono',monospace; font-size:10px; font-weight:800; color:var(--text-faint);
+    font-family:'SF Mono',monospace; font-size:11px; font-weight:800; color:var(--text-faint);
     letter-spacing:0.06em; text-transform:uppercase;
     -webkit-user-select:none; user-select:none; touch-action:none;
   }
@@ -157,35 +157,45 @@
   }
   .digitalClock .clockFace{
     display:block; width:100%; box-sizing:border-box; background:#020402; border-radius:6px;
-    padding:6px 10px; font-family:'Doto', 'Courier New', 'SF Mono', monospace; font-weight:800;
-    font-size:clamp(22px, 8vw, 34px); text-align:center;
+    padding:10px 10px; font-family:'Doto', 'Courier New', 'SF Mono', monospace; font-weight:800;
+    font-size:clamp(32px, 13vw, 54px); text-align:center;
     letter-spacing:0.08em; color:#39ff4a;
   }
   .restRow{display:flex; gap:6px; align-items:stretch; margin-top:6px;}
+  .actionRow{display:flex; gap:6px; align-items:stretch; margin-top:8px;}
+  .actionRow .dateBtn{
+    flex:0 0 auto; width:78px; background:var(--surface); border:1px solid var(--surface-alt);
+    border-radius:8px; color:var(--text-dim); font-family:'SF Mono',monospace; font-size:12px;
+    padding:0 4px; text-align:center;
+  }
+  .actionRow .actionMiddle{flex:2; margin:0;}
+  .actionRow .actionSide{flex:1; margin:0; width:auto; padding:10px 4px; font-size:12px;}
   .restRow input[type=date]{
     background:var(--surface); border:1px solid var(--surface-alt); border-radius:6px;
     padding:0 10px; color:var(--text-dim); font-family:'SF Mono',monospace; font-size:15px;
   }
   .restRow .btn{width:auto;}
 
-  /* Today page — calibrated to fit a ~14cm-tall phone screen without scrolling */
-  .todayContent .bigTitle{font-size:18px; margin-bottom:4px;}
+  /* Today page — a clean type scale (10/14/15/18/22/24), calibrated for a ~14cm-tall screen.
+     10=micro labels, 14=exercise name/buttons, 15=date/utility, 18=total (de-emphasized),
+     22=workout title, 24=per-side (the number you actually read to load the bar). */
+  .todayContent .bigTitle{font-size:22px; margin-bottom:4px;}
   .todayContent .eyebrow{margin-top:4px !important; margin-bottom:4px;}
   .todayContent .colHeaderRow{padding-bottom:3px; margin-bottom:1px;}
-  .todayContent .colHeaderRow span{font-size:9px;}
+  .todayContent .colHeaderRow span{font-size:10px;}
   .todayContent .liftRowCompact{padding:6px 0;}
-  .todayContent .lnameWrapShort{width:44px;}
-  .todayContent .lname{font-size:13px;}
-  .todayContent .lval{font-size:22px !important; font-weight:400 !important;}
-  .todayContent .lval.small{font-size:17px !important; font-weight:800 !important;}
-  .todayContent .editableVal{width:66px; font-size:20px !important; font-weight:400 !important; padding:3px;}
-  .todayContent .editableVal.small{width:76px; font-size:18px !important; font-weight:800 !important; padding:3px 4px;}
+  .todayContent .lnameWrapShort{width:56px;}
+  .todayContent .lname{font-size:14px;}
+  .todayContent .lval{font-size:18px !important; font-weight:400 !important;}
+  .todayContent .lval.small{font-size:24px !important; font-weight:800 !important;}
+  .todayContent .editableVal{width:62px; font-size:18px !important; font-weight:400 !important; padding:3px;}
+  .todayContent .editableVal.small{width:90px; font-size:24px !important; font-weight:800 !important; padding:4px;}
   .todayContent .stepBtn{width:26px; height:26px; font-size:15px !important;}
-  .todayContent .colHeaderRow .chWorkout{width:44px;}
-  .todayContent .extraItem{padding:4px 0; font-size:11px !important;}
-  .todayContent .btn{padding:12px; font-size:15px !important;}
+  .todayContent .colHeaderRow .chWorkout{width:56px;}
+  .todayContent .extraItem{padding:4px 0; font-size:14px !important;}
+  .todayContent .btn{padding:12px; font-size:14px !important;}
   .todayContent .lbl{margin-top:5px !important; margin-bottom:2px !important; font-size:10px !important;}
-  .peekHint{font-size:11px; color:var(--text-faint); text-align:center; margin-top:8px; font-style:italic;}
+  .peekHint{font-size:10px; color:var(--text-faint); text-align:center; margin-top:8px; font-style:italic;}
   .liftHead{display:flex; justify-content:space-between; align-items:baseline; margin-bottom:1px;}
   .liftHead .name{font-size:11px; font-weight:600; color:var(--text-dim);}
   .liftHead .meta{font-size:9px; color:var(--text-faint); font-family:'SF Mono',monospace;}
@@ -332,6 +342,61 @@
   .incRow{display:flex; justify-content:space-between; font-size:11px; padding:4px 0;}
   .incRow .n{color:var(--text-faint);}
   .incRow .v{font-family:'SF Mono',monospace; color:var(--text-dim);}
+
+  /* Small phone screens (~14cm tall): keep the clock and full exercise list
+     in the first view. The action row can continue below the fold. */
+  @media screen and (max-height:560px){
+    header{padding:4px 10px 3px;}
+    header h1{font-size:12px;}
+    header h1 svg{width:13px; height:13px;}
+    #langBtn{font-size:8px; padding:2px 6px;}
+    main{padding:3px 8px 0;}
+    nav button{padding:3px 0;}
+    nav button svg{width:15px; height:15px;}
+
+    .sheetTab{padding:3px 4px; font-size:10px;}
+    .digitalClock{margin-top:4px;}
+    .digitalClock .clockFace{
+      font-size:clamp(26px, 10vw, 42px);
+      padding:4px 8px;
+    }
+
+    .todayContent{padding-top:2px;}
+    .todayContent .eyebrow{margin-top:2px !important; margin-bottom:2px;}
+    .todayContent .bigTitle{font-size:19px; margin-bottom:2px;}
+    .todayContent .colHeaderRow{padding-bottom:1px; margin-bottom:0;}
+    .todayContent .colHeaderRow span{font-size:8px;}
+    .todayContent .liftRowCompact{padding:3px 0; gap:4px;}
+    .todayContent .lnameWrapShort{width:48px;}
+    .todayContent .lname{font-size:12px;}
+    .todayContent .lval{font-size:15px !important;}
+    .todayContent .lval.small{font-size:19px !important;}
+    .todayContent .editableVal{font-size:15px !important; padding:2px;}
+    .todayContent .editableVal.small{width:78px; font-size:19px !important; padding:2px;}
+    .todayContent .stepBtn{width:22px; height:22px; font-size:13px !important;}
+    .todayContent .colHeaderRow .chWorkout{width:48px;}
+    .todayContent .extraItem{padding:2px 0; font-size:12px !important;}
+    .todayContent .actionRow{margin-top:5px;}
+    .todayContent .btn{padding:9px; font-size:12px !important;}
+  }
+
+  @media screen and (max-height:430px){
+    header{padding-top:3px; padding-bottom:2px;}
+    main{padding-top:2px;}
+    .sheetTab{padding-top:2px; padding-bottom:2px;}
+    .digitalClock{margin-top:2px;}
+    .digitalClock .clockFace{
+      font-size:clamp(23px, 9vw, 36px);
+      padding:2px 6px;
+    }
+    .todayContent .bigTitle{font-size:17px;}
+    .todayContent .liftRowCompact{padding:2px 0;}
+    .todayContent .lname{font-size:11px;}
+    .todayContent .lval{font-size:14px !important;}
+    .todayContent .lval.small{font-size:17px !important;}
+    .todayContent .editableVal.small{font-size:17px !important;}
+    .todayContent .stepBtn{width:20px; height:20px;}
+  }
 </style>
 </head>
 <body>
@@ -350,7 +415,7 @@ const MICRO_PLATES = [1,0.75,0.5,0.25];
 
 const MIN_STEP = Math.min(...MICRO_PLATES); // finest increment achievable per side with available plates
 const DELETE_PASSWORD = "0822";
-const APP_VERSION = "1.9.0"; // bump this on every meaningful release so devices can tell if they're stale
+const APP_VERSION = "1.9.1"; // bump this on every meaningful release so devices can tell if they're stale
 
 const LIFTS = {
   dfs:    {key:"dfs",    en:"Front Squat (warm-up)", id:"Front Squat (pemanasan)", short:"DFS", workouts:["A","B"], kind:"perSide", inc:0.25, sets:"5×5"},
@@ -768,8 +833,8 @@ function renderToday(main){
   ui.peekingTomorrow = false; // always starts un-pressed on a fresh paint
 
   const tabRow = el("div",{class:"sheetTabRow"});
-  const todayTab = el("button",{class:"sheetTab active", type:"button"},[ lang==="en"?"Today":"Hari Ini" ]);
-  const tomorrowTab = el("button",{class:"sheetTab", type:"button"},[ lang==="en"?"Tomorrow":"Besok" ]);
+  const todayTab = el("button",{class:"sheetTab active", type:"button"},[ `${t("workout",lang)} ${todayType}` ]);
+  const tomorrowTab = el("button",{class:"sheetTab", type:"button"},[ `${t("workout",lang)} ${tomorrowType}` ]);
   tabRow.appendChild(todayTab);
   tabRow.appendChild(tomorrowTab);
   main.appendChild(tabRow);
@@ -875,18 +940,18 @@ function renderToday(main){
         ]));
       });
     }
-    content.appendChild(el("button",{class:"btn btn-primary", style:"margin-top:4px;", onClick:()=>{ startLog(nextType); }},[t("logThisSession",lang)]));
-
     if(ui.restDayDate===null || ui.restDayDate===undefined){ ui.restDayDate = todayLocal(); }
     const restAlready = restLoggedForDate(ui.restDayDate);
-    const restRow = el("div",{class:"restRow"});
-    const dateIn = el("input",{type:"date", value:ui.restDayDate, max:todayLocal(), onChange:(e)=>{ ui.restDayDate = e.target.value; paintEditable(); }});
-    restRow.appendChild(dateIn);
-    const restBtnAttrs = { class:"btn btn-ghost"+(restAlready?" disabledBtn":""), style:"flex:1;" };
+
+    const actionRow = el("div",{class:"actionRow"});
+    const dateIn = el("input",{type:"date", class:"dateBtn", value:ui.restDayDate, max:todayLocal(), onChange:(e)=>{ ui.restDayDate = e.target.value; paintEditable(); }});
+    actionRow.appendChild(dateIn);
+    actionRow.appendChild(el("button",{class:"btn btn-primary actionMiddle", onClick:()=>{ startLog(nextType); }},[t("logThisSession",lang)]));
+    const restBtnAttrs = { class:"btn btn-ghost actionSide"+(restAlready?" disabledBtn":"") };
     if(!restAlready) restBtnAttrs.onClick = ()=>{ logRestDay(ui.restDayDate); paintEditable(); };
-    restRow.appendChild(el("button", restBtnAttrs,
-      [ restAlready ? (lang==="en"?"Logged":"Tercatat") : (lang==="en"?"Log Rest Day":"Catat Istirahat") ]));
-    content.appendChild(restRow);
+    actionRow.appendChild(el("button", restBtnAttrs,
+      [ restAlready ? (lang==="en"?"Logged":"Tercatat") : (lang==="en"?"Rest Day":"Hari Istirahat") ]));
+    content.appendChild(actionRow);
   }
 
   function paintPreview(){
