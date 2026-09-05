@@ -120,8 +120,8 @@
   .sheetTab{
     flex:1; display:flex; align-items:center; justify-content:center;
     background:var(--surface); border:1px solid var(--surface-alt); border-bottom:none;
-    border-radius:5px 5px 0 0; padding:7px 4px; cursor:pointer;
-    font-family:'SF Mono',monospace; font-size:11px; font-weight:800; color:var(--text-faint);
+    border-radius:5px 5px 0 0; padding:5px 4px; cursor:pointer;
+    font-family:'SF Mono',monospace; font-size:10px; font-weight:800; color:var(--text-faint);
     letter-spacing:0.06em; text-transform:uppercase;
     -webkit-user-select:none; user-select:none; touch-action:none;
   }
@@ -157,8 +157,8 @@
   }
   .digitalClock .clockFace{
     display:block; width:100%; box-sizing:border-box; background:#020402; border-radius:6px;
-    padding:10px 10px; font-family:'Doto', 'Courier New', 'SF Mono', monospace; font-weight:800;
-    font-size:clamp(28px, 10vw, 44px); text-align:center;
+    padding:6px 10px; font-family:'Doto', 'Courier New', 'SF Mono', monospace; font-weight:800;
+    font-size:clamp(22px, 8vw, 34px); text-align:center;
     letter-spacing:0.08em; color:#39ff4a;
   }
   .restRow{display:flex; gap:6px; align-items:stretch; margin-top:6px;}
@@ -169,22 +169,22 @@
   .restRow .btn{width:auto;}
 
   /* Today page — calibrated to fit a ~14cm-tall phone screen without scrolling */
-  .todayContent .bigTitle{font-size:20px; margin-bottom:6px;}
-  .todayContent .eyebrow{margin-top:6px !important; margin-bottom:6px;}
-  .todayContent .colHeaderRow{padding-bottom:4px; margin-bottom:2px;}
-  .todayContent .colHeaderRow span{font-size:10px;}
-  .todayContent .liftRowCompact{padding:8px 0;}
-  .todayContent .lnameWrapShort{width:48px;}
-  .todayContent .lname{font-size:14px;}
-  .todayContent .lval{font-size:24px !important;}
-  .todayContent .lval.small{font-size:17px !important;}
-  .todayContent .editableVal{width:66px; font-size:22px !important; padding:3px;}
-  .todayContent .editableVal.small{width:56px; font-size:17px !important;}
+  .todayContent .bigTitle{font-size:18px; margin-bottom:4px;}
+  .todayContent .eyebrow{margin-top:4px !important; margin-bottom:4px;}
+  .todayContent .colHeaderRow{padding-bottom:3px; margin-bottom:1px;}
+  .todayContent .colHeaderRow span{font-size:9px;}
+  .todayContent .liftRowCompact{padding:6px 0;}
+  .todayContent .lnameWrapShort{width:44px;}
+  .todayContent .lname{font-size:13px;}
+  .todayContent .lval{font-size:22px !important; font-weight:400 !important;}
+  .todayContent .lval.small{font-size:17px !important; font-weight:800 !important;}
+  .todayContent .editableVal{width:66px; font-size:20px !important; font-weight:400 !important; padding:3px;}
+  .todayContent .editableVal.small{width:76px; font-size:18px !important; font-weight:800 !important; padding:3px 4px;}
   .todayContent .stepBtn{width:26px; height:26px; font-size:15px !important;}
-  .todayContent .colHeaderRow .chWorkout{width:48px;}
-  .todayContent .extraItem{padding:5px 0; font-size:12px !important;}
+  .todayContent .colHeaderRow .chWorkout{width:44px;}
+  .todayContent .extraItem{padding:4px 0; font-size:11px !important;}
   .todayContent .btn{padding:12px; font-size:15px !important;}
-  .todayContent .lbl{margin-top:6px !important; margin-bottom:3px !important; font-size:10px !important;}
+  .todayContent .lbl{margin-top:5px !important; margin-bottom:2px !important; font-size:10px !important;}
   .peekHint{font-size:11px; color:var(--text-faint); text-align:center; margin-top:8px; font-style:italic;}
   .liftHead{display:flex; justify-content:space-between; align-items:baseline; margin-bottom:1px;}
   .liftHead .name{font-size:11px; font-weight:600; color:var(--text-dim);}
@@ -784,6 +784,7 @@ function renderToday(main){
   paintClock();
   if(window._ironLogClockInterval) clearInterval(window._ironLogClockInterval);
   window._ironLogClockInterval = setInterval(paintClock, 10000);
+  main.appendChild(clockEl);
 
   const content = el("div",{class:"todayContent"});
   main.appendChild(content);
@@ -886,7 +887,6 @@ function renderToday(main){
     restRow.appendChild(el("button", restBtnAttrs,
       [ restAlready ? (lang==="en"?"Logged":"Tercatat") : (lang==="en"?"Log Rest Day":"Catat Istirahat") ]));
     content.appendChild(restRow);
-    content.appendChild(clockEl);
   }
 
   function paintPreview(){
