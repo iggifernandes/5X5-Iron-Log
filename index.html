@@ -179,7 +179,7 @@
   /* Today page — a clean type scale (10/14/15/18/22/24), calibrated for a ~14cm-tall screen.
      10=micro labels, 14=exercise name/buttons, 15=date/utility, 18=total (de-emphasized),
      22=workout title, 24=per-side (the number you actually read to load the bar). */
-  .todayContent .bigTitle{font-size:22px; margin-bottom:4px;}
+  .todayContent .bigTitle{font-size:34px; margin-bottom:6px;}
   .todayContent .eyebrow{margin-top:4px !important; margin-bottom:4px;}
   .todayContent .colHeaderRow{padding-bottom:3px; margin-bottom:1px;}
   .todayContent .colHeaderRow span{font-size:10px;}
@@ -342,61 +342,6 @@
   .incRow{display:flex; justify-content:space-between; font-size:11px; padding:4px 0;}
   .incRow .n{color:var(--text-faint);}
   .incRow .v{font-family:'SF Mono',monospace; color:var(--text-dim);}
-
-  /* Small phone screens (~14cm tall): keep the clock and full exercise list
-     in the first view. The action row can continue below the fold. */
-  @media screen and (max-height:560px){
-    header{padding:4px 10px 3px;}
-    header h1{font-size:12px;}
-    header h1 svg{width:13px; height:13px;}
-    #langBtn{font-size:8px; padding:2px 6px;}
-    main{padding:3px 8px 0;}
-    nav button{padding:3px 0;}
-    nav button svg{width:15px; height:15px;}
-
-    .sheetTab{padding:3px 4px; font-size:10px;}
-    .digitalClock{margin-top:4px;}
-    .digitalClock .clockFace{
-      font-size:clamp(26px, 10vw, 42px);
-      padding:4px 8px;
-    }
-
-    .todayContent{padding-top:2px;}
-    .todayContent .eyebrow{margin-top:2px !important; margin-bottom:2px;}
-    .todayContent .bigTitle{font-size:19px; margin-bottom:2px;}
-    .todayContent .colHeaderRow{padding-bottom:1px; margin-bottom:0;}
-    .todayContent .colHeaderRow span{font-size:8px;}
-    .todayContent .liftRowCompact{padding:3px 0; gap:4px;}
-    .todayContent .lnameWrapShort{width:48px;}
-    .todayContent .lname{font-size:12px;}
-    .todayContent .lval{font-size:15px !important;}
-    .todayContent .lval.small{font-size:19px !important;}
-    .todayContent .editableVal{font-size:15px !important; padding:2px;}
-    .todayContent .editableVal.small{width:78px; font-size:19px !important; padding:2px;}
-    .todayContent .stepBtn{width:22px; height:22px; font-size:13px !important;}
-    .todayContent .colHeaderRow .chWorkout{width:48px;}
-    .todayContent .extraItem{padding:2px 0; font-size:12px !important;}
-    .todayContent .actionRow{margin-top:5px;}
-    .todayContent .btn{padding:9px; font-size:12px !important;}
-  }
-
-  @media screen and (max-height:430px){
-    header{padding-top:3px; padding-bottom:2px;}
-    main{padding-top:2px;}
-    .sheetTab{padding-top:2px; padding-bottom:2px;}
-    .digitalClock{margin-top:2px;}
-    .digitalClock .clockFace{
-      font-size:clamp(23px, 9vw, 36px);
-      padding:2px 6px;
-    }
-    .todayContent .bigTitle{font-size:17px;}
-    .todayContent .liftRowCompact{padding:2px 0;}
-    .todayContent .lname{font-size:11px;}
-    .todayContent .lval{font-size:14px !important;}
-    .todayContent .lval.small{font-size:17px !important;}
-    .todayContent .editableVal.small{font-size:17px !important;}
-    .todayContent .stepBtn{width:20px; height:20px;}
-  }
 </style>
 </head>
 <body>
@@ -415,7 +360,7 @@ const MICRO_PLATES = [1,0.75,0.5,0.25];
 
 const MIN_STEP = Math.min(...MICRO_PLATES); // finest increment achievable per side with available plates
 const DELETE_PASSWORD = "0822";
-const APP_VERSION = "1.9.1"; // bump this on every meaningful release so devices can tell if they're stale
+const APP_VERSION = "1.9.0"; // bump this on every meaningful release so devices can tell if they're stale
 
 const LIFTS = {
   dfs:    {key:"dfs",    en:"Front Squat (warm-up)", id:"Front Squat (pemanasan)", short:"DFS", workouts:["A","B"], kind:"perSide", inc:0.25, sets:"5×5"},
@@ -952,6 +897,7 @@ function renderToday(main){
     actionRow.appendChild(el("button", restBtnAttrs,
       [ restAlready ? (lang==="en"?"Logged":"Tercatat") : (lang==="en"?"Rest Day":"Hari Istirahat") ]));
     content.appendChild(actionRow);
+    requestAnimationFrame(fitTodayToScreen);
   }
 
   function paintPreview(){
@@ -982,6 +928,7 @@ function renderToday(main){
       content.appendChild(row);
     });
     content.appendChild(el("div",{class:"peekHint"},[ lang==="en" ? "Release to return to today's workout" : "Lepaskan untuk kembali ke latihan hari ini" ]));
+    requestAnimationFrame(fitTodayToScreen);
   }
 
   function enterPeek(e){
@@ -2066,7 +2013,7 @@ function render(){
   }
   app.appendChild(header);
 
-  const main = el("main");
+  const main = el("main",{id:"mainContent"});
   if(ui.tab==="today") renderToday(main);
   else if(ui.tab==="log") renderLog(main);
   else if(ui.tab==="progress") renderProgress(main);
@@ -2094,7 +2041,39 @@ function render(){
   });
   nav.appendChild(inner);
   app.appendChild(nav);
+
+  if(ui.tab==="today"){
+    requestAnimationFrame(fitTodayToScreen);
+  }
 }
+
+function fitTodayToScreen(){
+  // Measures the ACTUAL rendered height of Today's content against the real
+  // available viewport space, and shrinks it just enough to guarantee it
+  // never scrolls — instead of guessing pixel values per device by hand.
+  const main = document.getElementById("mainContent");
+  if(!main) return;
+  main.style.transform = "none";
+  main.style.height = "auto";
+  main.style.width = "100%";
+
+  const header = document.querySelector("header");
+  const nav = document.querySelector("nav");
+  const headerH = header ? header.getBoundingClientRect().height : 0;
+  const navH = nav ? nav.getBoundingClientRect().height : 0;
+  const available = window.innerHeight - headerH - navH - 4; // small safety margin
+  const natural = main.scrollHeight;
+
+  if(natural > available && available > 100){
+    const scale = Math.max(0.55, available / natural); // never shrink below 55% — stays legible
+    main.style.transformOrigin = "top center";
+    main.style.transform = `scale(${scale})`;
+    main.style.width = (100/scale) + "%";
+    main.style.marginLeft = `-${(100/scale - 100)/2}%`;
+    main.style.height = (natural*scale) + "px";
+  }
+}
+window.addEventListener("resize", ()=>{ if(ui.tab==="today") fitTodayToScreen(); });
 
 function releasePeek(){
   if(ui.peekingTomorrow && typeof ui._exitPeek==="function"){ ui._exitPeek(); }
