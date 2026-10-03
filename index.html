@@ -120,8 +120,8 @@
   .sheetTab{
     flex:1; display:flex; align-items:center; justify-content:center;
     background:var(--surface); border:1px solid var(--surface-alt); border-bottom:none;
-    border-radius:5px 5px 0 0; padding:5px 4px; cursor:pointer;
-    font-family:'SF Mono',monospace; font-size:11px; font-weight:800; color:var(--text-faint);
+    border-radius:5px 5px 0 0; padding:5px 3px; cursor:pointer;
+    font-family:'SF Mono',monospace; font-size:10px; font-weight:800; color:var(--text-faint);
     letter-spacing:0.06em; text-transform:uppercase;
     -webkit-user-select:none; user-select:none; touch-action:none;
   }
@@ -135,14 +135,22 @@
   }
   .resetBtn:active{border-color:var(--accent); color:#f4b8ae;}
   .disabledBtn{opacity:0.45; cursor:default; pointer-events:none;}
-  .logChoiceRow{display:flex; gap:14px; justify-content:center; padding:20px 0;}
+  .tickBtn{
+    flex-shrink:0; width:24px; height:24px; margin-left:8px; border-radius:6px;
+    border:1.5px solid var(--surface-alt); background:none; color:transparent;
+    font-size:14px; font-weight:900; cursor:pointer; display:flex; align-items:center; justify-content:center;
+  }
+  .tickBtn.checked{background:var(--emerald); border-color:var(--emerald); color:#04140c;}
+  .liftRowCompact.ticked{opacity:0.55;}
+  .liftRowCompact.ticked .lname{text-decoration:line-through;}
+  .logChoiceRow{display:flex; gap:10px; justify-content:center; padding:20px 0;}
   .logChoiceSquare{
-    width:130px; height:130px; border-radius:12px; cursor:pointer;
-    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px;
+    width:100px; height:100px; border-radius:12px; cursor:pointer;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:5px;
     font-family:'SF Mono',monospace; background:var(--surface); border:2px solid var(--surface-alt);
   }
-  .logChoiceSquare .lcsType{font-size:34px; font-weight:900; letter-spacing:0.02em;}
-  .logChoiceSquare .lcsTag{font-size:10px; text-transform:uppercase; letter-spacing:0.12em; font-weight:700;}
+  .logChoiceSquare .lcsType{font-size:15px; font-weight:900; letter-spacing:0.02em; text-align:center; line-height:1.2;}
+  .logChoiceSquare .lcsTag{font-size:9px; text-transform:uppercase; letter-spacing:0.1em; font-weight:700; min-height:11px;}
   .logChoiceSquare.glowing{
     background:#0a1f0f; border-color:#34d399; color:#7fff8a;
     box-shadow:0 0 10px rgba(52,211,153,0.55), 0 0 24px rgba(52,211,153,0.35), inset 0 0 14px rgba(52,211,153,0.15);
@@ -362,18 +370,36 @@ const MIN_STEP = Math.min(...MICRO_PLATES); // finest increment achievable per s
 const DELETE_PASSWORD = "0822";
 const APP_VERSION = "1.9.0"; // bump this on every meaningful release so devices can tell if they're stale
 
+// 3-day split (Oct 2026 recalibration): full-depth back squat daily, leg press +
+// calf raise daily, ab machine daily, chest/triceps on Day 1, back/biceps on
+// Day 2 (deadlift lives here too — too fatiguing to do daily alongside squat),
+// shoulders on Day 3. Front squat was dropped — it was aggravating the user's
+// left shoulder blade as the weight climbed.
 const LIFTS = {
-  dfs:    {key:"dfs",    en:"Front Squat (warm-up)", id:"Front Squat (pemanasan)", short:"DFS", workouts:["A","B"], kind:"perSide", inc:0.25, sets:"5×5"},
-  sq:     {key:"sq",     en:"Squat",                 id:"Squat",                   short:"SQ",  workouts:["A","B"], kind:"perSide", inc:0.5,  sets:"5×5"},
-  bp:     {key:"bp",     en:"Bench Press",           id:"Bench Press",             short:"BP",  workouts:["A"],     kind:"perSide", inc:0.5,  sets:"5×5"},
-  rw:     {key:"rw",     en:"Barbell Row",           id:"Barbell Row",             short:"RW",  workouts:["A"],     kind:"perSide", inc:0.25, sets:"5×5"},
-  ohp:    {key:"ohp",    en:"Overhead Press",        id:"Overhead Press",          short:"OH",  workouts:["B"],     kind:"perSide", inc:0.25, sets:"5×5"},
-  dl:     {key:"dl",     en:"Deadlift",              id:"Deadlift",                short:"DL",  workouts:["B"],     kind:"perSide", inc:0.5,  sets:"1×5"},
-  curl:   {key:"curl",   en:"Bicep Curl",            id:"Bicep Curl",              short:"BC",  workouts:["A","B"], kind:"perSide", inc:0.25, sets:"5×5"},
-  tricep: {key:"tricep", en:"Close-Grip Tricep Press", id:"Tricep Close-Grip",     short:"TP",  workouts:["A","B"], kind:"perSide", inc:0.5,  sets:"5×5"},
+  sq:         {key:"sq",         en:"Back Squat",              id:"Back Squat",         short:"SQ", workouts:["1","2","3"], kind:"perSide", inc:0.25, sets:"5×5"},
+  // Leg press sled has its own ~100kg base resistance, plus real plates loaded
+  // on each side — tracked the same way as a barbell, just with a different base.
+  legpress:   {key:"legpress",   en:"Leg Press",               id:"Leg Press",          short:"LP", workouts:["1","2","3"], kind:"perSide", inc:0.25, sets:"5×5", base:100},
+  // Same sled, same mechanics as Leg Press (100kg base + real plates per side) —
+  // tracked completely independently, just structured identically.
+  calf:       {key:"calf",       en:"Calf Raise",              id:"Calf Raise",         short:"CF", workouts:["1","2","3"], kind:"perSide", inc:0.25, sets:"5×5", base:100},
+  bp:         {key:"bp",         en:"Bench Press",             id:"Bench Press",        short:"BP", workouts:["1"],         kind:"perSide", inc:0.25, sets:"5×5"},
+  tricep:     {key:"tricep",     en:"Close-Grip Tricep Press", id:"Tricep Close-Grip",  short:"TP", workouts:["1"],         kind:"perSide", inc:0.25, sets:"5×5"},
+  cablecrunch:{key:"cablecrunch",en:"Cable Crunches",          id:"Cable Crunch",       short:"CC", workouts:["1"],         kind:"added",   inc:2.5,  sets:"5×5"},
+  rw:         {key:"rw",         en:"Barbell Row",             id:"Barbell Row",        short:"RW", workouts:["2"],         kind:"perSide", inc:0.25, sets:"5×5"},
+  curl:       {key:"curl",       en:"Bicep Curl",              id:"Bicep Curl",         short:"BC", workouts:["2"],         kind:"perSide", inc:0.25, sets:"5×5"},
+  dl:         {key:"dl",         en:"Deadlift",                id:"Deadlift",           short:"DL", workouts:["2"],         kind:"perSide", inc:0.25, sets:"1×5"},
+  sidebend:   {key:"sidebend",   en:"Side Bends",              id:"Side Bends",         short:"SB", workouts:["2"],         kind:"added",   inc:0.25, sets:"5×5"},
+  ohp:        {key:"ohp",        en:"Overhead Press",          id:"Overhead Press",     short:"OH", workouts:["3"],         kind:"perSide", inc:0.25, sets:"5×5"},
+  dragonflag: {key:"dragonflag", en:"Dragon Flag",             id:"Dragon Flag",        short:"DF", workouts:["3"],         kind:"added",   inc:0,    sets:"5×10"},
 };
+const WORKOUT_DAYS = ["1","2","3"];
+function nextWorkoutDay(type){
+  const i = WORKOUT_DAYS.indexOf(type);
+  return WORKOUT_DAYS[(i+1) % WORKOUT_DAYS.length];
+}
 
-const DEFAULT_CURRENT = {dfs:8.25, sq:31, bp:20.5, rw:16.75, ohp:6.75, dl:28.5, curl:0.25, tricep:0.25};
+const DEFAULT_CURRENT = {sq:35.5, legpress:25, calf:25, bp:20, tricep:13, cablecrunch:30, rw:19, curl:7.75, dl:33.25, sidebend:20, ohp:10, dragonflag:0};
 
 const DICT = {
   appName:{en:"IRON LOG", id:"IRON LOG"},
@@ -427,13 +453,14 @@ function fmt(n){
   return Number.isInteger(n) ? String(n) : n.toFixed(2).replace(/0+$/,"").replace(/\.$/,"");
 }
 function computeLoad(lift, value){
+  const base = lift.base ?? BAR; // most lifts use the 20kg barbell; machines like Leg Press have their own base resistance
   if(lift.kind==="perSide"){
     const gym = decompose(value, GYM_PLATES);
     const micro = decompose(gym.remainder, MICRO_PLATES);
-    return {gymPieces:gym.pieces, microPieces:micro.pieces, total:BAR+value*2, sideValue:value};
+    return {gymPieces:gym.pieces, microPieces:micro.pieces, total:base+value*2, sideValue:value};
   }
   if(lift.kind==="total"){
-    const plateSide = (value-BAR)/2;
+    const plateSide = (value-base)/2;
     const gym = decompose(plateSide, GYM_PLATES);
     const micro = decompose(gym.remainder, MICRO_PLATES);
     return {gymPieces:gym.pieces, microPieces:micro.pieces, total:value, sideValue:plateSide};
@@ -478,7 +505,7 @@ function loadStore(){
     settings:{
       lang:"en", current:{...DEFAULT_CURRENT},
       increments:Object.fromEntries(Object.values(LIFTS).map(l=>[l.key,l.inc])),
-      lastWorkoutType:"B", onHold:{}
+      lastWorkoutType:"3", onHold:{}, day3SplitMigrated:true, day3AbLegMigrated:true, calfUnlinkedFromLegPress:true, calfPerSideMigrated:true, sidebendSlowed:true
     },
     plannedSession:null,
     painLog:[],
@@ -603,9 +630,87 @@ if(!state.settings.tricepPerSideMigrated){
   state.settings.tricepPerSideMigrated = true;
   saveStoreLocalOnly();
 }
+if(!state.settings.day3SplitMigrated){
+  // Oct 2026 recalibration: dropped the A/B 5x5 split for a 3-day rotation
+  // (full-depth back squat daily, leg press + calf + ab machine daily, with
+  // chest/triceps, back/biceps, and shoulders split across the 3 days).
+  // Front squat (dfs) is retired — it was aggravating a shoulder blade.
+  // Existing progress on lifts that carry over (sq/bp/rw/ohp/dl/curl/tricep)
+  // is kept as-is; only the brand-new lifts get a starting default.
+  delete state.settings.current.dfs;
+  delete state.settings.onHold.dfs;
+  delete state.settings.increments.dfs;
+  ["legpress","calf"].forEach(key=>{
+    if(state.settings.current[key]===undefined) state.settings.current[key] = DEFAULT_CURRENT[key];
+    if(state.settings.onHold[key]===undefined) state.settings.onHold[key] = false;
+    if(state.settings.increments[key]===undefined) state.settings.increments[key] = LIFTS[key].inc;
+  });
+  // Old lastWorkoutType was "A" or "B" — remap to the new 3-day scheme so the
+  // rotation starts cleanly at Day 1 next time the app opens.
+  if(state.settings.lastWorkoutType !== "1" && state.settings.lastWorkoutType !== "2"){
+    state.settings.lastWorkoutType = "3";
+  }
+  state.settings.day3SplitMigrated = true;
+  saveStoreLocalOnly();
+}
+if(!state.settings.day3AbLegMigrated){
+  // Leg Press switched from a flat "total machine weight" number to real
+  // per-side plate math on a ~100kg sled base — the old stored number meant
+  // something different under the old scheme, so it resets to the new
+  // confirmed starting point (25kg/side) rather than being misread.
+  state.settings.current.legpress = DEFAULT_CURRENT.legpress;
+  state.settings.onHold.legpress = false;
+  state.settings.increments.legpress = LIFTS.legpress.inc;
+  // The single generic "Ab Machine" lift is retired in favor of 3 distinct
+  // exercises, one per day: Cable Crunches (Day 1), Side Bends (Day 2),
+  // Dragon Flag (Day 3, bodyweight — no load to track, just sets/reps).
+  delete state.settings.current.ab;
+  delete state.settings.onHold.ab;
+  delete state.settings.increments.ab;
+  ["cablecrunch","sidebend","dragonflag"].forEach(key=>{
+    state.settings.current[key] = DEFAULT_CURRENT[key];
+    state.settings.onHold[key] = false;
+    state.settings.increments[key] = LIFTS[key].inc;
+  });
+  state.settings.day3AbLegMigrated = true;
+  saveStoreLocalOnly();
+}
+if(!state.settings.calfUnlinkedFromLegPress){
+  // Calf Raise is independent again (no longer forced to mirror Leg Press).
+  // Start it at whatever Leg Press currently totals, so it doesn't jump back
+  // to a stale old default the moment it's unlocked.
+  const lpVal = suggestedValue("legpress");
+  state.settings.current.calf = computeLoad(LIFTS.legpress, lpVal).total;
+  state.settings.onHold.calf = false;
+  if(state.settings.increments.calf===undefined || state.settings.increments.calf===0){
+    state.settings.increments.calf = LIFTS.calf.inc;
+  }
+  state.settings.calfUnlinkedFromLegPress = true;
+  saveStoreLocalOnly();
+}
+if(!state.settings.calfPerSideMigrated){
+  // Calf Raise switched from a flat total to real per-side plate math — same
+  // structure as Leg Press (100kg base). Convert whatever total was stored
+  // under the old scheme into the equivalent per-side number, so it starts
+  // in sync with Leg Press rather than jumping to an unrelated value.
+  const oldTotal = state.settings.current.calf ?? 150;
+  state.settings.current.calf = Math.round(Math.max(0,(oldTotal-100)/2)*100)/100;
+  state.settings.onHold.calf = false;
+  state.settings.increments.calf = LIFTS.calf.inc;
+  state.settings.calfPerSideMigrated = true;
+  saveStoreLocalOnly();
+}
+if(!state.settings.sidebendSlowed){
+  // Side Bends restarted at 20kg with a slower +0.25kg/session climb.
+  state.settings.current.sidebend = DEFAULT_CURRENT.sidebend;
+  state.settings.onHold.sidebend = false;
+  state.settings.increments.sidebend = LIFTS.sidebend.inc;
+  state.settings.sidebendSlowed = true;
+  saveStoreLocalOnly();
+}
 const EXERCISE_OPTIONS = ["Weighted Pull-ups","Side Bends","Cable Crunches","Leg Rise","Dips","Calf Press (Cream)","Calf Press (Cone)"];
 
-let ui = { tab:"today", logDraft:null, progressLift:"sq", expandedSession:null, confirmDeleteId:null, todayOverrides:{}, todayExtras:null, peekingTomorrow:false, editingSessionId:null, restDayDate:null, historySortDir:"desc", resetConfirming:false };
+let ui = { tab:"today", logDraft:null, progressLift:"sq", expandedSession:null, confirmDeleteId:null, todayOverrides:{}, todayExtras:null, peekingTomorrow:false, editingSessionId:null, restDayDate:null, historySortDir:"desc", resetConfirming:false, todayTicked:{}, todayTickedForType:null };
 
 /* ---------------- render helpers ---------------- */
 function el(tag, attrs, children){
@@ -773,15 +878,18 @@ function loadDiagramEl(lift, value, lang){
 /* ---------------- tabs ---------------- */
 function renderToday(main){
   const lang = state.settings.lang;
-  const todayType = state.settings.lastWorkoutType==="A" ? "B" : "A";
-  const tomorrowType = todayType==="A" ? "B" : "A";
+  const todayType = nextWorkoutDay(state.settings.lastWorkoutType);
   ui.peekingTomorrow = false; // always starts un-pressed on a fresh paint
+  let peekedType = null; // which non-today tab is currently being held, if any
 
   const tabRow = el("div",{class:"sheetTabRow"});
-  const todayTab = el("button",{class:"sheetTab active", type:"button"},[ `${t("workout",lang)} ${todayType}` ]);
-  const tomorrowTab = el("button",{class:"sheetTab", type:"button"},[ `${t("workout",lang)} ${tomorrowType}` ]);
-  tabRow.appendChild(todayTab);
-  tabRow.appendChild(tomorrowTab);
+  const tabButtons = {}; // type -> button element, so peek handlers can find/restyle them
+  WORKOUT_DAYS.forEach(type=>{
+    const isToday = type===todayType;
+    const btn = el("button",{class:"sheetTab"+(isToday?" active":""), type:"button"},[ `${t("workout",lang)} ${type}` ]);
+    tabButtons[type] = btn;
+    tabRow.appendChild(btn);
+  });
   main.appendChild(tabRow);
 
   const clockEl = el("div",{class:"digitalClock"},[ el("span",{class:"clockFace"},["--:--"]) ]);
@@ -803,6 +911,10 @@ function renderToday(main){
     content.innerHTML = "";
     const nextType = todayType;
     const liftsForNext = Object.values(LIFTS).filter(l=>l.workouts.includes(nextType));
+    if(ui.todayTickedForType !== `${nextType}:${new Date().toDateString()}`){
+      ui.todayTicked = {};
+      ui.todayTickedForType = `${nextType}:${new Date().toDateString()}`;
+    }
     const plan = state.plannedSession && state.plannedSession.type===nextType ? state.plannedSession : null;
     if(plan && Object.keys(ui.todayOverrides).length===0){
       Object.entries(plan.lifts).forEach(([k,d])=>{ ui.todayOverrides[k] = d.value; });
@@ -844,7 +956,8 @@ function renderToday(main){
       const overrideVal = ui.todayOverrides[lift.key];
       const val = overrideVal !== undefined ? overrideVal : suggestedValue(lift.key);
       const load = computeLoad(lift, val);
-      const row = el("div",{class:"liftRowCompact"});
+      const isTicked = !!ui.todayTicked[lift.key];
+      const row = el("div",{class:"liftRowCompact"+(isTicked?" ticked":"")});
       row.appendChild(el("div",{class:"lnameWrapShort"},[
         el("span",{class:"lname", style:"display:block;"},[lift.short]),
       ]));
@@ -873,6 +986,10 @@ function renderToday(main){
         row.appendChild(el("div",{class:"lcol"},[stepper]));
         row.appendChild(el("div",{class:"lcol right"},[ el("span",{class:"lval mono"},[fmt(load.total)+"kg"]) ]));
       }
+      row.appendChild(el("button",{
+        class:"tickBtn"+(isTicked?" checked":""), type:"button",
+        onClick:()=>{ ui.todayTicked[lift.key] = !ui.todayTicked[lift.key]; paintEditable(); }
+      },[ isTicked ? "✓" : "" ]));
       content.appendChild(row);
     });
     if(ui.todayExtras===null){ ui.todayExtras = plan ? [...(plan.extra||[])] : []; }
@@ -900,10 +1017,10 @@ function renderToday(main){
     requestAnimationFrame(fitTodayToScreen);
   }
 
-  function paintPreview(){
+  function paintPreview(previewType){
     content.innerHTML = "";
-    const previewLifts = Object.values(LIFTS).filter(l=>l.workouts.includes(tomorrowType));
-    content.appendChild(el("div",{class:"bigTitle", style:"margin-top:8px;"},[`${t("workout",lang)} ${tomorrowType}`]));
+    const previewLifts = Object.values(LIFTS).filter(l=>l.workouts.includes(previewType));
+    content.appendChild(el("div",{class:"bigTitle", style:"margin-top:8px;"},[`${t("workout",lang)} ${previewType}`]));
     const sideLbl = lang==="en" ? "Per side" : "Per sisi";
     content.appendChild(el("div",{class:"colHeaderRow"},[
       el("span",{class:"chWorkout"},[lang==="en"?"Workout":"Latihan"]),
@@ -931,24 +1048,31 @@ function renderToday(main){
     requestAnimationFrame(fitTodayToScreen);
   }
 
-  function enterPeek(e){
-    if(e.cancelable) e.preventDefault();
-    if(ui.peekingTomorrow) return;
-    ui.peekingTomorrow = true;
-    todayTab.classList.remove("active");
-    tomorrowTab.classList.add("active","peeking");
-    paintPreview();
+  function enterPeek(type){
+    return (e)=>{
+      if(e.cancelable) e.preventDefault();
+      if(ui.peekingTomorrow) return;
+      ui.peekingTomorrow = true;
+      peekedType = type;
+      tabButtons[todayType].classList.remove("active");
+      tabButtons[type].classList.add("active","peeking");
+      paintPreview(type);
+    };
   }
   function exitPeek(){
     if(!ui.peekingTomorrow) return;
     ui.peekingTomorrow = false;
-    tomorrowTab.classList.remove("active","peeking");
-    todayTab.classList.add("active");
+    if(peekedType) tabButtons[peekedType].classList.remove("active","peeking");
+    peekedType = null;
+    tabButtons[todayType].classList.add("active");
     paintEditable();
   }
-  tomorrowTab.addEventListener("pointerdown", enterPeek);
-  tomorrowTab.addEventListener("touchstart", enterPeek, {passive:false});
-  tomorrowTab.addEventListener("contextmenu", (e)=>e.preventDefault());
+  WORKOUT_DAYS.filter(type=>type!==todayType).forEach(type=>{
+    const btn = tabButtons[type];
+    btn.addEventListener("pointerdown", enterPeek(type));
+    btn.addEventListener("touchstart", enterPeek(type), {passive:false});
+    btn.addEventListener("contextmenu", (e)=>e.preventDefault());
+  });
   ui._exitPeek = exitPeek; // exposed so the global release listeners can reach this render's closure
 
   paintEditable();
@@ -1022,18 +1146,17 @@ function recomputeStatus(data){
 function renderLog(main){
   const lang = state.settings.lang;
   if(!ui.logDraft){
-    const todayType = state.settings.lastWorkoutType==="A" ? "B" : "A";
-    const nextType = todayType==="A" ? "B" : "A";
+    const todayType = nextWorkoutDay(state.settings.lastWorkoutType);
     const todayLbl = lang==="en" ? "Today" : "Hari Ini";
-    const nextLbl = lang==="en" ? "Next" : "Berikutnya";
     const wrap = el("div",{class:"logChoiceRow"});
-    [ {type:todayType, tag:todayLbl, glow:true}, {type:nextType, tag:nextLbl, glow:false} ].forEach(({type,tag,glow})=>{
+    WORKOUT_DAYS.forEach(type=>{
+      const isToday = type===todayType;
       const btn = el("button",{
-        class:"logChoiceSquare"+(glow?" glowing":" dim"),
+        class:"logChoiceSquare"+(isToday?" glowing":" dim"),
         onClick:()=>startLog(type)
       },[
-        el("span",{class:"lcsType"},[type]),
-        el("span",{class:"lcsTag"},[tag]),
+        el("span",{class:"lcsType"},[`${t("workout",lang)} ${type}`]),
+        el("span",{class:"lcsTag"},[ isToday ? todayLbl : "" ]),
       ]);
       wrap.appendChild(btn);
     });
@@ -1971,8 +2094,8 @@ function renderSettings(main){
         settings:{
           lang: state.settings.lang, current:{...DEFAULT_CURRENT},
           increments:Object.fromEntries(Object.values(LIFTS).map(l=>[l.key,l.inc])),
-          lastWorkoutType:"B", onHold:{},
-          aug14Restored:true, curlPerSideMigrated:true, tricepPerSideMigrated:true
+          lastWorkoutType:"3", onHold:{},
+          aug14Restored:true, curlPerSideMigrated:true, tricepPerSideMigrated:true, day3SplitMigrated:true, day3AbLegMigrated:true, calfUnlinkedFromLegPress:true, calfPerSideMigrated:true, sidebendSlowed:true
         },
         plannedSession:null, painLog:[], measurements:[], sessions:[]
       };
