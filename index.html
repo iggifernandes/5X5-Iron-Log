@@ -47,12 +47,6 @@
     margin-top:5px; cursor:pointer; font-family:'SF Mono',monospace;
   }
   header p.tag{display:none;}
-  #langBtn{
-    display:flex; align-items:center; gap:4px; font-size:9px; letter-spacing:0.08em;
-    text-transform:uppercase; color:var(--text-faint); border:1px solid var(--surface-alt);
-    border-radius:5px; padding:3px 7px; background:none; cursor:pointer;
-  }
-  #langBtn:hover{border-color:var(--text-faint); color:var(--text-dim);}
   main{padding:6px 10px 2px;}
   nav{
     position:fixed; bottom:0; left:0; right:0; background:rgba(12,10,9,0.97);
@@ -350,6 +344,49 @@
   .incRow{display:flex; justify-content:space-between; font-size:11px; padding:4px 0;}
   .incRow .n{color:var(--text-faint);}
   .incRow .v{font-family:'SF Mono',monospace; color:var(--text-dim);}
+
+  /* ---------- 5x5 / Split mode switch + Split screens ---------- */
+  .modeRow{display:flex; gap:6px; margin-top:5px;}
+  .modeBtn{
+    flex:1; padding:6px 0; border-radius:6px; border:1px solid var(--surface-alt); background:var(--surface);
+    color:var(--text-faint); font-family:'SF Mono',monospace; font-size:11px; font-weight:800;
+    letter-spacing:0.12em; text-transform:uppercase; cursor:pointer;
+  }
+  .modeBtn.active{background:rgba(178,58,46,0.2); border-color:var(--accent); color:var(--amber);}
+  .splitContent .spTitle{font-size:21px !important; margin-bottom:4px;}
+  .splitContent .spHdrName{flex:0 0 96px; font-size:10px;}
+  .splitContent .liftRowCompact{align-items:center; padding:5px 0;}
+  .spName{flex:0 0 96px; display:flex; flex-direction:column; gap:1px; min-width:0;}
+  .spN{font-size:13px; font-weight:700; color:var(--text); line-height:1.2; word-break:break-word;}
+  .spMeta{font-size:9px; color:var(--text-faint); font-family:'SF Mono',monospace; letter-spacing:0.02em; line-height:1.25;}
+  .spPlates{font-size:9px; color:#d9a89f; line-height:1.25;}
+  .spVal{
+    font-family:'Doto','SF Mono',monospace; font-weight:800; color:var(--amber); width:62px; font-size:20px;
+    text-align:center; padding:3px 1px; border-radius:5px; background:rgba(178,58,46,0.08); border:1px solid rgba(178,58,46,0.4);
+  }
+  .spTotal{font-size:16px; color:var(--text-dim); font-weight:700;}
+  .splitContent .stepBtn{width:24px; height:24px; font-size:14px;}
+  .spTick.missed{background:var(--amberflag); border-color:var(--amberflag); color:#241a00;}
+  .spTick.clean{background:var(--emerald); border-color:var(--emerald); color:#04140c;}
+  .spLegend{font-size:9px; color:var(--text-faint); text-align:center; margin-top:5px; font-family:'SF Mono',monospace;}
+  .spEnergy{display:flex; align-items:center; gap:5px; margin-top:6px;}
+  .spEBtn{
+    flex:1; padding:6px 0; border-radius:6px; border:1px solid var(--surface-alt); background:var(--surface);
+    color:var(--text-faint); font-family:'SF Mono',monospace; font-size:12px; font-weight:800; cursor:pointer;
+  }
+  .spEBtn.active{background:rgba(178,58,46,0.2); border-color:var(--accent); color:#f4b8ae;}
+  .spMsg{font-size:11px; color:#f4a5a5; text-align:center; margin-top:5px; font-family:'SF Mono',monospace;}
+  .spNote{font-size:11px; color:var(--text-dim); line-height:1.4; margin-bottom:5px;}
+  .spPlanCard{border:1px solid var(--surface-alt); border-radius:8px; padding:8px 10px; margin-bottom:6px; cursor:pointer; background:rgba(41,37,36,0.3);}
+  .spPlanCard.active{border-color:var(--accent); background:rgba(178,58,46,0.12);}
+  .spPlanName{font-size:13px; font-weight:800; color:var(--amber); margin-bottom:2px;}
+  .spPlanNote{font-size:11px; color:var(--text-dim); line-height:1.35; margin-bottom:3px;}
+  .spPlanDays{font-size:10px; color:var(--text-faint);}
+  .spGroup{font-size:10px; text-transform:uppercase; letter-spacing:0.12em; color:var(--text-faint); font-family:'SF Mono',monospace; margin:8px 0 3px;}
+  .spCfgRow{display:flex; align-items:center; gap:5px; margin-bottom:4px;}
+  .spCfgName{flex:1; min-width:0; background:var(--surface); border:1px solid var(--surface-alt); border-radius:5px; padding:5px 7px; color:var(--text); font-size:12px;}
+  .spCfgNum{width:54px; background:var(--surface); border:1px solid var(--surface-alt); border-radius:5px; padding:5px 4px; color:var(--amber); font-family:'SF Mono',monospace; font-size:11px; text-align:center;}
+  .spCfgUnit{font-size:9px; color:var(--text-faint); width:26px;}
 </style>
 </head>
 <body>
@@ -368,7 +405,7 @@ const MICRO_PLATES = [1,0.75,0.5,0.25];
 
 const MIN_STEP = Math.min(...MICRO_PLATES); // finest increment achievable per side with available plates
 const DELETE_PASSWORD = "0822";
-const APP_VERSION = "1.9.0"; // bump this on every meaningful release so devices can tell if they're stale
+const APP_VERSION = "2.0.0"; // bump this on every meaningful release so devices can tell if they're stale
 
 // 3-day split (Oct 2026 recalibration): full-depth back squat daily, leg press +
 // calf raise daily, ab machine daily, chest/triceps on Day 1, back/biceps on
@@ -706,6 +743,12 @@ if(!state.settings.sidebendSlowed){
   state.settings.onHold.sidebend = false;
   state.settings.increments.sidebend = LIFTS.sidebend.inc;
   state.settings.sidebendSlowed = true;
+  saveStoreLocalOnly();
+}
+if(state.settings.lang !== "en"){
+  // Language toggle removed — English only now. Force it so anyone previously
+  // on Bahasa Indonesia isn't stuck there with no way to switch back.
+  state.settings.lang = "en";
   saveStoreLocalOnly();
 }
 const EXERCISE_OPTIONS = ["Weighted Pull-ups","Side Bends","Cable Crunches","Leg Rise","Dips","Calf Press (Cream)","Calf Press (Cone)"];
@@ -2116,6 +2159,407 @@ function renderSettings(main){
 }
 function saveStoreAsync(){ return new Promise(res=>{ saveStore(); res(); }); }
 
+/* ================= SPLIT MODE (Nov 2026) =================
+   A second, independent training mode: a machine-based "regular" split with
+   legs every day. 5 exercises per day = Smith squat + 1 rotating leg machine
+   + 1 abs + 2 upper-body. Everything lives in state.split, so it never touches
+   the 5x5 sessions, weights or history. The 5x5 / Split choice is stored per
+   device (not synced) so the phone and laptop can differ. */
+const MODE_KEY = "ironlog_mode";
+function getSavedMode(){ try{ return localStorage.getItem(MODE_KEY)==="split" ? "split" : "5x5"; }catch(e){ return "5x5"; } }
+function saveMode(m){ try{ localStorage.setItem(MODE_KEY, m); }catch(e){} }
+ui.mode = getSavedMode();
+ui.splitDay = null; ui.splitDayPlan = null; ui.splitStatus = {}; ui.splitOver = {};
+ui.splitEnergy = null; ui.splitDate = null; ui.splitLift = "smithsq"; ui.splitFlash = null;
+ui.splitExpanded = null; ui.splitConfirmDeleteId = null;
+
+function switchMode(m){
+  if(ui.mode===m) return;
+  ui.mode = m; saveMode(m);
+  ui.logDraft = null; ui.tab = "today";
+  if(window._ironLogClockInterval){ clearInterval(window._ironLogClockInterval); window._ironLogClockInterval = null; }
+  render();
+}
+
+// kind "perSide": plate-loaded, value = kg per side, total = base + 2 x value.
+// kind "total":   weight-stack machine, value = the stack kg itself.
+// Names, next weights and steps can all be edited in Settings (Split section),
+// because machine stacks differ from gym to gym.
+const SPLIT_EX = {
+  smithsq:     {name:"Smith Squat",         group:"Legs",      kind:"perSide", base:"smith", sets:4, reps:8,  inc:0.25, start:25},
+  legpress:    {name:"Leg Press",           group:"Legs",      kind:"perSide", base:100,     sets:3, reps:12, inc:0.25, start:25},
+  calfraise:   {name:"Calf Raise (sled)",   group:"Legs",      kind:"perSide", base:100,     sets:4, reps:15, inc:0.25, start:22},
+  legcurl:     {name:"Leg Curl",            group:"Legs",      kind:"total",   sets:3, reps:12, inc:2.5,  start:30},
+  legext:      {name:"Leg Extension",       group:"Legs",      kind:"total",   sets:3, reps:12, inc:2.5,  start:35},
+  abcrunch:    {name:"Ab Crunch Machine",   group:"Abs",       kind:"total",   sets:3, reps:15, inc:2.5,  start:30},
+  cablecrunch: {name:"Cable Crunch",        group:"Abs",       kind:"total",   sets:3, reps:12, inc:2.5,  start:35},
+  torso:       {name:"Torso Rotation",      group:"Abs",       kind:"total",   sets:3, reps:15, inc:2.5,  start:25},
+  chestpress:  {name:"Chest Press",         group:"Chest",     kind:"total",   sets:3, reps:10, inc:2.5,  start:30},
+  pecdeck:     {name:"Pec Deck",            group:"Chest",     kind:"total",   sets:3, reps:12, inc:2.5,  start:25},
+  triceppush:  {name:"Triceps Pushdown",    group:"Triceps",   kind:"total",   sets:3, reps:12, inc:2.5,  start:20},
+  latpull:     {name:"Lat Pulldown",        group:"Back",      kind:"total",   sets:3, reps:10, inc:2.5,  start:40},
+  seatedrow:   {name:"Seated Row",          group:"Back",      kind:"total",   sets:3, reps:10, inc:2.5,  start:40},
+  bicepcurl:   {name:"Biceps Curl",         group:"Biceps",    kind:"total",   sets:3, reps:12, inc:2.5,  start:15},
+  shoulderpress:{name:"Shoulder Press",     group:"Shoulders", kind:"total",   sets:3, reps:10, inc:2.5,  start:20},
+  lateralraise:{name:"Lateral Raise",       group:"Shoulders", kind:"total",   sets:3, reps:15, inc:2.5,  start:10},
+};
+
+// Trainer's logic: Smith squat every day (your call), a different second leg
+// machine each day so quads / hamstrings / calves all get hit without hammering
+// one pattern 6x a week, a different abs movement each day, and two upper-body
+// moves chosen by the plan. Pick the plan in Settings.
+const SPLIT_PLANS = {
+  A:{ name:"Classic 3-day", note:"Chest+Triceps · Back+Biceps · Shoulders, run twice a week on your 6 days. Each muscle ~2x/week. Closest to what you were doing.", days:[
+    {label:"Chest + Triceps", short:"Chest+Tri",  ex:["smithsq","legpress","abcrunch","chestpress","triceppush"]},
+    {label:"Back + Biceps",   short:"Back+Bi",    ex:["smithsq","legcurl","cablecrunch","latpull","bicepcurl"]},
+    {label:"Shoulders",       short:"Shoulders",  ex:["smithsq","legext","torso","shoulderpress","lateralraise"]},
+  ]},
+  B:{ name:"4-day body-part", note:"Chest · Back · Shoulders · Arms. Both upper moves hit the same muscle, so more volume per muscle per day, ~1.5x/week each.", days:[
+    {label:"Chest",     short:"Chest",     ex:["smithsq","legpress","abcrunch","chestpress","pecdeck"]},
+    {label:"Back",      short:"Back",      ex:["smithsq","legcurl","cablecrunch","latpull","seatedrow"]},
+    {label:"Shoulders", short:"Shoulders", ex:["smithsq","legext","torso","shoulderpress","lateralraise"]},
+    {label:"Arms",      short:"Arms",      ex:["smithsq","calfraise","abcrunch","bicepcurl","triceppush"]},
+  ]},
+  C:{ name:"2-day upper A/B", note:"Chest+Back one day, Shoulders+Row the next. Everything upper is hit every 2 days (3x/week). Simplest and quickest; arms get indirect work only.", days:[
+    {label:"Chest + Back",     short:"Chest+Back",    ex:["smithsq","legpress","abcrunch","chestpress","latpull"]},
+    {label:"Shoulders + Row",  short:"Shldr+Row",     ex:["smithsq","legcurl","cablecrunch","shoulderpress","seatedrow"]},
+  ]},
+};
+
+function ensureSplit(){
+  if(!state.split || typeof state.split!=="object"){
+    state.split = {plan:"A", smithBase:20, next:{}, hold:{}, inc:{}, names:{}, sessions:[]};
+    saveStoreLocalOnly(); // creating the empty structure is not a user change — don't stamp a fresh sync timestamp
+  }
+  const s = state.split;
+  if(!s.next) s.next = {}; if(!s.hold) s.hold = {}; if(!s.inc) s.inc = {}; if(!s.names) s.names = {};
+  if(!Array.isArray(s.sessions)) s.sessions = [];
+  if(!SPLIT_PLANS[s.plan]) s.plan = "A";
+  if(s.smithBase===undefined || s.smithBase===null || isNaN(s.smithBase)) s.smithBase = 20;
+  return s;
+}
+function spName(k){ const s=ensureSplit(); return (s.names[k] && String(s.names[k]).trim()) || SPLIT_EX[k].name; }
+function spInc(k){ const s=ensureSplit(); const v=s.inc[k]; return (v!==undefined && v!==null && !isNaN(v) && v>0) ? v : SPLIT_EX[k].inc; }
+function spNext(k){ const s=ensureSplit(); const v=s.next[k]; return (v!==undefined && v!==null && !isNaN(v)) ? v : SPLIT_EX[k].start; }
+function spBase(k){ const ex=SPLIT_EX[k]; if(ex.base==="smith") return ensureSplit().smithBase; return ex.base!==undefined ? ex.base : BAR; }
+function spLoad(k, val){
+  const ex = SPLIT_EX[k];
+  if(ex.kind==="perSide") return computeLoad({kind:"perSide", base:spBase(k)}, val);
+  return {gymPieces:[], microPieces:[], total:val, sideValue:val};
+}
+function spPlatesText(load){
+  const g = load.gymPieces.map(fmt).join("+");
+  const m = load.microPieces.map(fmt).join("+");
+  if(!g && !m) return "bar only";
+  return (g || "–") + (m ? "  +μ"+m : "");
+}
+function spPlan(){ return SPLIT_PLANS[ensureSplit().plan]; }
+function spSessionList(){
+  // Real (non-rest) split sessions, oldest -> newest by date then by id.
+  return ensureSplit().sessions.filter(s=>s.type!=="REST")
+    .sort((a,b)=> a.date.localeCompare(b.date) || (Number(a.id)-Number(b.id)));
+}
+function spNextDayIdx(){
+  const s = ensureSplit();
+  const mine = spSessionList().filter(x=>x.plan===s.plan);
+  if(!mine.length) return 0;
+  return (((mine[mine.length-1].day)|0) + 1) % spPlan().days.length;
+}
+function spEverLogged(k){
+  return ensureSplit().sessions.some(s=> s.lifts && s.lifts[k] && s.lifts[k].status!=="skipped");
+}
+function spStalled(keys){
+  // A lift that was marked "missed" in each of its last two attempts.
+  const list = spSessionList();
+  return keys.filter(k=>{
+    const att = list.filter(s=>s.lifts && s.lifts[k] && s.lifts[k].status!=="skipped").map(s=>s.lifts[k].status);
+    return att.length>=2 && att[att.length-1]==="missed" && att[att.length-2]==="missed";
+  });
+}
+function r2(n){ return Math.round(n*100)/100; }
+
+function logSplitSession(day, dayIdx){
+  const sp = ensureSplit();
+  const lifts = {};
+  let any = false;
+  day.ex.forEach(k=>{
+    const st = ui.splitStatus[k] || "skipped";
+    const val = ui.splitOver[k]!==undefined ? ui.splitOver[k] : spNext(k);
+    lifts[k] = {value:val, status:st, sets:SPLIT_EX[k].sets, reps:SPLIT_EX[k].reps};
+    if(st!=="skipped") any = true;
+  });
+  if(!any) return false;
+  const dateStr = ui.splitDate || todayLocal();
+  // Only move the "next weight" forward if no LATER session already holds this lift
+  // (so back-filling a missed day can't drag your weights backwards).
+  day.ex.forEach(k=>{
+    const L = lifts[k];
+    if(L.status==="skipped") return;
+    const later = sp.sessions.some(s=> s.type!=="REST" && s.date>dateStr && s.lifts && s.lifts[k] && s.lifts[k].status!=="skipped");
+    if(later) return;
+    if(L.status==="clean"){ sp.next[k] = r2(L.value + spInc(k)); sp.hold[k] = false; }
+    else if(L.status==="missed"){ sp.next[k] = L.value; sp.hold[k] = true; }
+  });
+  sp.sessions.push({
+    id:String(Date.now()), type:"SPLIT", date:dateStr, plan:sp.plan, day:dayIdx, dayLabel:day.label,
+    energy:ui.splitEnergy||null, notes:"", lifts
+  });
+  saveStore();
+  ui.splitDay = null; ui.splitStatus = {}; ui.splitOver = {}; ui.splitEnergy = null; ui.splitDate = null;
+  ui.splitFlash = `Saved — ${day.label}. Weights updated.`;
+  return true;
+}
+
+function renderSplitToday(main){
+  const sp = ensureSplit();
+  const plan = spPlan();
+  const nextIdx = spNextDayIdx();
+  if(ui.splitDay===null || ui.splitDayPlan!==sp.plan || ui.splitDay>=plan.days.length){
+    ui.splitDay = nextIdx; ui.splitDayPlan = sp.plan; ui.splitStatus = {}; ui.splitOver = {};
+  }
+  const dayIdx = ui.splitDay;
+  const day = plan.days[dayIdx];
+  if(!ui.splitDate) ui.splitDate = todayLocal();
+
+  const tabRow = el("div",{class:"sheetTabRow"});
+  plan.days.forEach((d,i)=>{
+    const isNext = i===nextIdx;
+    const btn = el("button",{class:"sheetTab"+(i===dayIdx?" active":""), type:"button", onClick:()=>{
+      ui.splitDay = i; ui.splitStatus = {}; ui.splitOver = {}; render();
+    }},[ `D${i+1}` + (isNext ? " ●" : "") ]);
+    tabRow.appendChild(btn);
+  });
+  main.appendChild(tabRow);
+
+  const content = el("div",{class:"todayContent splitContent"});
+  main.appendChild(content);
+
+  function paint(){
+    content.innerHTML = "";
+    if(ui.splitFlash){
+      content.appendChild(el("div",{class:"banner", style:"border-color:rgba(52,211,153,0.4); color:#7fe8a8; background:rgba(52,211,153,0.08);"},[ui.splitFlash]));
+      ui.splitFlash = null;
+    }
+    if(sp.sessions.length===0){
+      content.appendChild(el("div",{class:"banner"},[
+        "First split session: the weights below are starting guesses. Pick a load you can finish every rep with ~2 reps left, adjust it here, then tick each exercise when done."
+      ]));
+    }
+    const stalled = spStalled(day.ex);
+    if(stalled.length){
+      content.appendChild(el("div",{class:"stallBanner"},[
+        stalled.map(spName).join(", ") + " missed the last 2 attempts — drop the weight about 10% rather than repeating it."
+      ]));
+    }
+    content.appendChild(el("div",{class:"eyebrow", style:"margin-top:6px;"},[
+      el("span",{class:"dot"}),
+      el("span",null,[ dayIdx===nextIdx ? "Next session" : "Chosen day" ]),
+      el("span",{class:"mono", style:"font-size:9px; letter-spacing:0.1em; text-transform:uppercase; color:var(--text-faint); margin-left:4px;"},[ plan.name ])
+    ]));
+    content.appendChild(el("div",{class:"bigTitle spTitle"},[ `Day ${dayIdx+1} · ${day.label}` ]));
+
+    content.appendChild(el("div",{class:"colHeaderRow"},[
+      el("span",{class:"spHdrName"},["Exercise"]),
+      el("span",{class:"chCol"},["Per side"]),
+      el("span",{class:"chCol right"},["Total"]),
+      el("span",{style:"width:32px;"},[""]),
+    ]));
+
+    day.ex.forEach(k=>{
+      const ex = SPLIT_EX[k];
+      const val = ui.splitOver[k]!==undefined ? ui.splitOver[k] : spNext(k);
+      const load = spLoad(k, val);
+      const st = ui.splitStatus[k] || "skipped";
+      const step = ex.kind==="perSide" ? MIN_STEP : spInc(k);
+      const row = el("div",{class:"liftRowCompact spRow"+(st==="clean"?" ticked":"")});
+
+      const meta = `${ex.group} · ${ex.sets}×${ex.reps}` + (spEverLogged(k) ? "" : " · calibrate") + (sp.hold[k] ? " · hold" : "");
+      const nameBox = el("div",{class:"spName"},[
+        el("span",{class:"spN"},[spName(k)]),
+        el("span",{class:"spMeta"},[meta]),
+        ex.kind==="perSide" ? el("span",{class:"spPlates mono"},[spPlatesText(load)]) : null,
+      ]);
+      row.appendChild(nameBox);
+
+      const editVal = ex.kind==="perSide" ? load.sideValue : val;
+      const commit = (newVal)=>{
+        newVal = Math.max(0, r2(newVal));
+        ui.splitOver[k] = newVal; paint();
+      };
+      const input = el("input",{class:"spVal mono", type:"number", step:step, value:editVal, onChange:(e)=>{ commit(parseFloat(e.target.value)||0); }});
+      const stepper = el("div",{class:"stepperGroup"},[
+        el("button",{class:"stepBtn", type:"button", onClick:()=>{ commit(editVal-step); }},["−"]),
+        input,
+        el("button",{class:"stepBtn", type:"button", onClick:()=>{ commit(editVal+step); }},["+"]),
+      ]);
+      if(ex.kind==="perSide"){
+        row.appendChild(el("div",{class:"lcol"},[stepper]));
+        row.appendChild(el("div",{class:"lcol right"},[ el("span",{class:"spTotal mono"},[fmt(load.total)+"kg"]) ]));
+      } else {
+        row.appendChild(el("div",{class:"lcol"}));
+        row.appendChild(el("div",{class:"lcol right"},[stepper]));
+      }
+      const mark = st==="clean" ? "✓" : (st==="missed" ? "!" : "");
+      row.appendChild(el("button",{class:"tickBtn spTick "+st, type:"button", title:"Tap: done · again: missed reps · again: skipped", onClick:()=>{
+        ui.splitStatus[k] = st==="skipped" ? "clean" : (st==="clean" ? "missed" : "skipped"); paint();
+      }},[mark]));
+      content.appendChild(row);
+    });
+
+    content.appendChild(el("div",{class:"spLegend"},["Tap the box: ✓ all reps done · ! missed reps (weight holds) · empty = skipped"]));
+
+    const eRow = el("div",{class:"spEnergy"},[ el("span",{class:"clbl"},["Energy"]) ]);
+    [1,2,3,4,5].forEach(n=>{
+      eRow.appendChild(el("button",{class:"spEBtn"+(ui.splitEnergy===n?" active":""), type:"button", onClick:()=>{
+        ui.splitEnergy = ui.splitEnergy===n ? null : n; paint();
+      }},[String(n)]));
+    });
+    content.appendChild(eRow);
+
+    const msg = el("div",{class:"spMsg", style:"display:none;"},["Tick at least one exercise first."]);
+    const actionRow = el("div",{class:"actionRow"});
+    actionRow.appendChild(el("input",{type:"date", class:"dateBtn", value:ui.splitDate, max:todayLocal(), onChange:(e)=>{ ui.splitDate = e.target.value || todayLocal(); }}));
+    actionRow.appendChild(el("button",{class:"btn btn-primary actionMiddle", type:"button", onClick:()=>{
+      if(logSplitSession(day, dayIdx)){ render(); } else { msg.style.display = "block"; }
+    }},["Log this session"]));
+    content.appendChild(actionRow);
+    content.appendChild(msg);
+    content.appendChild(el("button",{class:"linkBtn", type:"button", onClick:()=>{ ui.tab="settings"; render(); }},["Change split plan →"]));
+    requestAnimationFrame(fitTodayToScreen);
+  }
+  paint();
+}
+
+function renderSplitProgress(main){
+  const sp = ensureSplit();
+  const chipRow = el("div",{class:"chipRow"});
+  Object.keys(SPLIT_EX).forEach(k=>{
+    chipRow.appendChild(el("button",{class:"chip"+(ui.splitLift===k?" active":""), type:"button", onClick:()=>{ ui.splitLift=k; render(); }},[spName(k)]));
+  });
+  main.appendChild(chipRow);
+  const ex = SPLIT_EX[ui.splitLift] || SPLIT_EX.smithsq;
+  const rows = spSessionList()
+    .filter(s=>s.lifts && s.lifts[ui.splitLift] && s.lifts[ui.splitLift].status!=="skipped")
+    .map(s=>({date:s.date.slice(5), value:s.lifts[ui.splitLift].value}));
+  main.appendChild(el("div",{class:"clbl", style:"margin-bottom:4px;"},[ ex.kind==="perSide" ? "kg per side" : "kg on the stack" ]));
+  if(rows.length<2){
+    main.appendChild(el("div",{class:"emptyState"},["Not enough split sessions logged for this exercise yet."]));
+    return;
+  }
+  main.appendChild(chartSvg(rows));
+}
+
+function renderSplitHistory(main){
+  const sp = ensureSplit();
+  const list = spSessionList().reverse();
+  if(!list.length){
+    main.appendChild(el("div",{class:"emptyState"},["No split sessions logged yet. Start from the Today tab."]));
+    return;
+  }
+  main.appendChild(el("div",{style:"margin-bottom:8px;"},[ el("span",{class:"mono", style:"font-size:11px; color:var(--text-faint);"},[`${list.length} split sessions logged`]) ]));
+  list.forEach(s=>{
+    const isOpen = ui.splitExpanded===s.id;
+    const item = el("div",{class:"histItem"});
+    item.appendChild(el("button",{class:"histHead", type:"button", onClick:()=>{ ui.splitExpanded = isOpen?null:s.id; render(); }},[
+      el("div",{class:"left"},[
+        el("span",{class:"wtype"},[ `D${(s.day|0)+1} ${s.dayLabel||""}` ]),
+        el("span",{class:"wdate"},[s.date])
+      ]),
+      (()=>{ const i=icon("chevronDown",16); i.style.color="#78716c"; i.style.transform = isOpen?"rotate(180deg)":"none"; return i; })()
+    ]));
+    if(isOpen){
+      const body = el("div",{class:"histBody"});
+      Object.entries(s.lifts||{}).forEach(([k,d])=>{
+        if(!SPLIT_EX[k]) return;
+        const ex = SPLIT_EX[k];
+        const load = spLoad(k, d.value);
+        const txt = ex.kind==="perSide" ? `${fmt(d.value)}/side (${fmt(load.total)}kg)` : `${fmt(d.value)}kg`;
+        const right = el("div",{style:"display:flex; align-items:center; gap:8px;"},[ el("span",{class:"rval"},[txt]) ]);
+        if(d.status==="clean"){ const i=icon("check",13); i.style.color="#34d399"; right.appendChild(i); }
+        if(d.status==="missed"){ right.appendChild(el("span",{class:"flag-missed"},["Missed reps"])); }
+        if(d.status==="skipped"){ const i=icon("x",13); i.style.color="#6b6560"; right.appendChild(i); }
+        body.appendChild(el("div",{class:"histRow"},[ el("span",{class:"lname"},[`${spName(k)} · ${d.sets||ex.sets}×${d.reps||ex.reps}`]), right ]));
+      });
+      if(s.energy){ body.appendChild(el("div",{class:"histRow"},[ el("span",{class:"lname"},["Energy"]), el("span",{class:"rval"},[`${s.energy}/5`]) ])); }
+      const delRow = el("div",{class:"delRow"});
+      if(ui.splitConfirmDeleteId===s.id){
+        const pw = el("input",{type:"password", placeholder:"Enter password to delete", style:"width:130px; background:var(--bg); border:1px solid var(--surface-alt); border-radius:5px; padding:4px 7px; color:var(--text); font-size:11px; margin-right:6px;"});
+        const err = el("span",{style:"font-size:10px; color:#f4a5a5; display:none; margin-right:6px;"},["Wrong password"]);
+        const doDelete = ()=>{
+          if(pw.value===DELETE_PASSWORD){
+            sp.sessions = sp.sessions.filter(x=>x.id!==s.id);
+            saveStore(); ui.splitConfirmDeleteId = null; render();
+          } else { err.style.display="inline"; pw.value=""; }
+        };
+        pw.addEventListener("keydown",(e)=>{ if(e.key==="Enter") doDelete(); });
+        delRow.appendChild(pw); delRow.appendChild(err);
+        delRow.appendChild(el("a",{onClick:doDelete},["Delete"]));
+        delRow.appendChild(el("a",{onClick:()=>{ ui.splitConfirmDeleteId=null; render(); }},["Cancel"]));
+      } else {
+        delRow.appendChild(el("a",{onClick:()=>{ ui.splitConfirmDeleteId=s.id; render(); }},["Delete"]));
+      }
+      body.appendChild(delRow);
+      item.appendChild(body);
+    }
+    main.appendChild(item);
+  });
+}
+
+function renderSplitSettings(main){
+  const sp = ensureSplit();
+  const sec = el("div",{class:"settingsSection"});
+  sec.appendChild(el("div",{class:"bigTitle", style:"font-size:20px; margin-bottom:6px;"},["Split Settings"]));
+  sec.appendChild(el("div",{class:"spNote"},["Every day: Smith squat + 1 leg machine + 1 abs + 2 upper-body = 5 exercises. The plan decides what the upper-body pair is."]));
+
+  sec.appendChild(el("label",{class:"lbl"},["Split plan"]));
+  Object.entries(SPLIT_PLANS).forEach(([id,p])=>{
+    sec.appendChild(el("div",{class:"spPlanCard"+(sp.plan===id?" active":""), onClick:()=>{
+      if(sp.plan===id) return;
+      sp.plan = id; saveStore(); ui.splitDay = null; render();
+    }},[
+      el("div",{class:"spPlanName"},[ p.name + (sp.plan===id ? "  ✓ selected" : "") ]),
+      el("div",{class:"spPlanNote"},[p.note]),
+      el("div",{class:"spPlanDays mono"},[ p.days.map((d,i)=>`D${i+1} ${d.label}`).join("  ·  ") ]),
+    ]));
+  });
+
+  sec.appendChild(el("label",{class:"lbl", style:"margin-top:10px;"},["Smith machine bar weight (kg)"]));
+  sec.appendChild(el("div",{class:"weightRow"},[
+    el("span",{class:"name"},["Empty bar (check the label on your Smith)"]),
+    el("input",{type:"number", step:"0.5", value:sp.smithBase, onChange:(e)=>{
+      const v = parseFloat(e.target.value); if(!isNaN(v) && v>=0){ sp.smithBase = v; saveStore(); } }})
+  ]));
+
+  sec.appendChild(el("label",{class:"lbl", style:"margin-top:10px;"},["Exercises — name · next weight · step"]));
+  const groups = [];
+  Object.keys(SPLIT_EX).forEach(k=>{ const g=SPLIT_EX[k].group; if(!groups.includes(g)) groups.push(g); });
+  groups.forEach(g=>{
+    sec.appendChild(el("div",{class:"spGroup"},[g]));
+    Object.keys(SPLIT_EX).filter(k=>SPLIT_EX[k].group===g).forEach(k=>{
+      const ex = SPLIT_EX[k];
+      const nameIn = el("input",{type:"text", class:"spCfgName", value:spName(k), onChange:(e)=>{
+        const v = e.target.value.trim(); if(v && v!==ex.name) sp.names[k]=v; else delete sp.names[k]; saveStore(); }});
+      const nextIn = el("input",{type:"number", class:"spCfgNum", step:"0.25", value:spNext(k), title: ex.kind==="perSide"?"kg per side":"kg on stack", onChange:(e)=>{
+        const v = parseFloat(e.target.value); if(!isNaN(v) && v>=0){ sp.next[k]=v; saveStore(); } }});
+      const incIn = el("input",{type:"number", class:"spCfgNum", step:"0.25", value:spInc(k), title:"kg added after a clean session", onChange:(e)=>{
+        const v = parseFloat(e.target.value); if(!isNaN(v) && v>0){ sp.inc[k]=v; saveStore(); } }});
+      sec.appendChild(el("div",{class:"spCfgRow"},[ nameIn, nextIn, incIn, el("span",{class:"spCfgUnit mono"},[ ex.kind==="perSide" ? "/side" : "kg" ]) ]));
+    });
+  });
+
+  sec.appendChild(el("label",{class:"lbl", style:"margin-top:12px;"},["Trainer's rules"]));
+  [
+    "Hit every set at the target reps → the weight goes up by the step next time. Miss reps → the weight holds. Miss twice in a row → drop about 10%.",
+    "Stop each set 1–2 reps before failure, especially on squats — you train legs daily, so recovery is the limit, not effort.",
+    "Every 5th or 6th week, take a deload week: same exercises, about 10% lighter, half the sets.",
+    "If both legs feel flat two days running, do the Smith squat and skip the second leg machine that day.",
+  ].forEach(t=>{ sec.appendChild(el("div",{class:"spNote"},["• "+t])); });
+
+  main.appendChild(sec);
+  main.appendChild(el("div",{style:"border-top:1px solid var(--surface-alt); margin:6px 0 12px;"}));
+  main.appendChild(el("div",{class:"lbl"},["App settings (shared by 5×5 and Split)"]));
+}
+
 /* ---------------- top-level render ---------------- */
 function render(){
   const app = document.getElementById("app");
@@ -2125,8 +2569,11 @@ function render(){
   const header = el("header");
   const row = el("div",{class:"row"});
   row.appendChild(el("h1",null,[ icon("dumbbell",18), t("appName",lang), el("span",{class:"versionBadge"},["v"+APP_VERSION]) ]));
-  row.appendChild(el("button",{id:"langBtn", onClick:()=>{ state.settings.lang = lang==="en"?"id":"en"; saveStore(); render(); }},[ icon("globe",13), lang==="en"?"ID":"EN" ]));
   header.appendChild(row);
+  header.appendChild(el("div",{class:"modeRow"},[
+    el("button",{class:"modeBtn"+(ui.mode==="5x5"?" active":""), type:"button", onClick:()=>switchMode("5x5")},["5×5"]),
+    el("button",{class:"modeBtn"+(ui.mode==="split"?" active":""), type:"button", onClick:()=>switchMode("split")},["Split"]),
+  ]));
   header.appendChild(el("p",{class:"tag"},[t("tagline",lang)]));
   if(window._ironLogUpdateAvailable){
     const upBanner = el("div",{class:"updateBanner", onClick:()=>{ window.location.reload(); }},[
@@ -2137,6 +2584,14 @@ function render(){
   app.appendChild(header);
 
   const main = el("main",{id:"mainContent"});
+  if(ui.mode==="split"){
+    if(ui.tab==="log") ui.tab = "today";
+    if(ui.tab==="today") renderSplitToday(main);
+    else if(ui.tab==="progress") renderSplitProgress(main);
+    else if(ui.tab==="history") renderSplitHistory(main);
+    else if(ui.tab==="measurements") renderMeasurements(main);
+    else if(ui.tab==="settings"){ renderSplitSettings(main); renderSettings(main); }
+  } else
   if(ui.tab==="today") renderToday(main);
   else if(ui.tab==="log") renderLog(main);
   else if(ui.tab==="progress") renderProgress(main);
@@ -2147,6 +2602,7 @@ function render(){
 
   const nav = el("nav");
   const inner = el("div",{class:"inner"});
+  if(ui.mode==="split") inner.style.gridTemplateColumns = "repeat(5,1fr)";
   [
     {key:"today", i:"flame", label:t("today",lang)},
     {key:"log", i:"plus", label:t("log",lang)},
@@ -2154,7 +2610,7 @@ function render(){
     {key:"history", i:"history", label:t("history",lang)},
     {key:"measurements", i:"ruler", label: lang==="en"?"Body":"Tubuh"},
     {key:"settings", i:"settings", label:t("settings",lang)},
-  ].forEach(item=>{
+  ].filter(item=> ui.mode!=="split" || item.key!=="log").forEach(item=>{
     const btn = el("button",{class: ui.tab===item.key?"active":"", onClick:()=>{
       if(item.key!=="log") ui.logDraft=null;
       if(item.key!=="today" && window._ironLogClockInterval){ clearInterval(window._ironLogClockInterval); window._ironLogClockInterval=null; }
