@@ -405,7 +405,7 @@ const MICRO_PLATES = [1,0.75,0.5,0.25];
 
 const MIN_STEP = Math.min(...MICRO_PLATES); // finest increment achievable per side with available plates
 const DELETE_PASSWORD = "0822";
-const APP_VERSION = "2.0.0"; // bump this on every meaningful release so devices can tell if they're stale
+const APP_VERSION = "2.0.1"; // bump this on every meaningful release so devices can tell if they're stale
 
 // 3-day split (Oct 2026 recalibration): full-depth back squat daily, leg press +
 // calf raise daily, ab machine daily, chest/triceps on Day 1, back/biceps on
@@ -2202,27 +2202,29 @@ const SPLIT_EX = {
   bicepcurl:   {name:"Biceps Curl",         group:"Biceps",    kind:"total",   sets:3, reps:12, inc:2.5,  start:15},
   shoulderpress:{name:"Shoulder Press",     group:"Shoulders", kind:"total",   sets:3, reps:10, inc:2.5,  start:20},
   lateralraise:{name:"Lateral Raise",       group:"Shoulders", kind:"total",   sets:3, reps:15, inc:2.5,  start:10},
+  reardelt:    {name:"Reverse Pec Deck",    group:"Rear Delts", kind:"total", sets:3, reps:15, inc:2.5, start:15},
 };
 
+// Rear delts (reverse pec deck) are on every day as the 6th exercise.
 // Trainer's logic: Smith squat every day (your call), a different second leg
 // machine each day so quads / hamstrings / calves all get hit without hammering
 // one pattern 6x a week, a different abs movement each day, and two upper-body
 // moves chosen by the plan. Pick the plan in Settings.
 const SPLIT_PLANS = {
   A:{ name:"Classic 3-day", note:"Chest+Triceps · Back+Biceps · Shoulders, run twice a week on your 6 days. Each muscle ~2x/week. Closest to what you were doing.", days:[
-    {label:"Chest + Triceps", short:"Chest+Tri",  ex:["smithsq","legpress","abcrunch","chestpress","triceppush"]},
-    {label:"Back + Biceps",   short:"Back+Bi",    ex:["smithsq","legcurl","cablecrunch","latpull","bicepcurl"]},
-    {label:"Shoulders",       short:"Shoulders",  ex:["smithsq","legext","torso","shoulderpress","lateralraise"]},
+    {label:"Chest + Triceps", short:"Chest+Tri",  ex:["smithsq","legpress","abcrunch","chestpress","triceppush","reardelt"]},
+    {label:"Back + Biceps",   short:"Back+Bi",    ex:["smithsq","legcurl","cablecrunch","latpull","bicepcurl","reardelt"]},
+    {label:"Shoulders",       short:"Shoulders",  ex:["smithsq","legext","torso","shoulderpress","lateralraise","reardelt"]},
   ]},
   B:{ name:"4-day body-part", note:"Chest · Back · Shoulders · Arms. Both upper moves hit the same muscle, so more volume per muscle per day, ~1.5x/week each.", days:[
-    {label:"Chest",     short:"Chest",     ex:["smithsq","legpress","abcrunch","chestpress","pecdeck"]},
-    {label:"Back",      short:"Back",      ex:["smithsq","legcurl","cablecrunch","latpull","seatedrow"]},
-    {label:"Shoulders", short:"Shoulders", ex:["smithsq","legext","torso","shoulderpress","lateralraise"]},
-    {label:"Arms",      short:"Arms",      ex:["smithsq","calfraise","abcrunch","bicepcurl","triceppush"]},
+    {label:"Chest",     short:"Chest",     ex:["smithsq","legpress","abcrunch","chestpress","pecdeck","reardelt"]},
+    {label:"Back",      short:"Back",      ex:["smithsq","legcurl","cablecrunch","latpull","seatedrow","reardelt"]},
+    {label:"Shoulders", short:"Shoulders", ex:["smithsq","legext","torso","shoulderpress","lateralraise","reardelt"]},
+    {label:"Arms",      short:"Arms",      ex:["smithsq","calfraise","abcrunch","bicepcurl","triceppush","reardelt"]},
   ]},
   C:{ name:"2-day upper A/B", note:"Chest+Back one day, Shoulders+Row the next. Everything upper is hit every 2 days (3x/week). Simplest and quickest; arms get indirect work only.", days:[
-    {label:"Chest + Back",     short:"Chest+Back",    ex:["smithsq","legpress","abcrunch","chestpress","latpull"]},
-    {label:"Shoulders + Row",  short:"Shldr+Row",     ex:["smithsq","legcurl","cablecrunch","shoulderpress","seatedrow"]},
+    {label:"Chest + Back",     short:"Chest+Back",    ex:["smithsq","legpress","abcrunch","chestpress","latpull","reardelt"]},
+    {label:"Shoulders + Row",  short:"Shldr+Row",     ex:["smithsq","legcurl","cablecrunch","shoulderpress","seatedrow","reardelt"]},
   ]},
 };
 
@@ -2509,7 +2511,7 @@ function renderSplitSettings(main){
   const sp = ensureSplit();
   const sec = el("div",{class:"settingsSection"});
   sec.appendChild(el("div",{class:"bigTitle", style:"font-size:20px; margin-bottom:6px;"},["Split Settings"]));
-  sec.appendChild(el("div",{class:"spNote"},["Every day: Smith squat + 1 leg machine + 1 abs + 2 upper-body = 5 exercises. The plan decides what the upper-body pair is."]));
+  sec.appendChild(el("div",{class:"spNote"},["Every day: Smith squat + 1 leg machine + 1 abs + 2 upper-body + rear delts = 6 exercises. The plan decides what the upper-body pair is."]));
 
   sec.appendChild(el("label",{class:"lbl"},["Split plan"]));
   Object.entries(SPLIT_PLANS).forEach(([id,p])=>{
