@@ -1,4 +1,4 @@
-const CACHE_NAME = "iron-log-v5"; // bumped so the old stale cache gets discarded
+const CACHE_NAME = "iron-log-v6"; // bumped so the old stale cache gets discarded
 const urlsToCache = ["./index.html"];
 
 self.addEventListener("install", (event) => {

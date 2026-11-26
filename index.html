@@ -405,7 +405,7 @@ const MICRO_PLATES = [1,0.75,0.5,0.25];
 
 const MIN_STEP = Math.min(...MICRO_PLATES); // finest increment achievable per side with available plates
 const DELETE_PASSWORD = "0822";
-const APP_VERSION = "2.0.1"; // bump this on every meaningful release so devices can tell if they're stale
+const APP_VERSION = "2.0.2"; // bump this on every meaningful release so devices can tell if they're stale
 
 // 3-day split (Oct 2026 recalibration): full-depth back squat daily, leg press +
 // calf raise daily, ab machine daily, chest/triceps on Day 1, back/biceps on
@@ -2187,6 +2187,7 @@ function switchMode(m){
 // because machine stacks differ from gym to gym.
 const SPLIT_EX = {
   smithsq:     {name:"Smith Squat",         group:"Legs",      kind:"perSide", base:"smith", sets:4, reps:8,  inc:0.25, start:25},
+  lunges:      {name:"Lunges (per leg)",     group:"Legs",      kind:"total",   sets:3, reps:10, inc:2,    start:20},
   legpress:    {name:"Leg Press",           group:"Legs",      kind:"perSide", base:100,     sets:3, reps:12, inc:0.25, start:25},
   calfraise:   {name:"Calf Raise (sled)",   group:"Legs",      kind:"perSide", base:100,     sets:4, reps:15, inc:0.25, start:22},
   legcurl:     {name:"Leg Curl",            group:"Legs",      kind:"total",   sets:3, reps:12, inc:2.5,  start:30},
@@ -2212,18 +2213,18 @@ const SPLIT_EX = {
 // moves chosen by the plan. Pick the plan in Settings.
 const SPLIT_PLANS = {
   A:{ name:"Classic 3-day", note:"Chest+Triceps · Back+Biceps · Shoulders, run twice a week on your 6 days. Each muscle ~2x/week. Closest to what you were doing.", days:[
-    {label:"Chest + Triceps", short:"Chest+Tri",  ex:["smithsq","legpress","abcrunch","chestpress","triceppush","reardelt"]},
+    {label:"Chest + Triceps", short:"Chest+Tri",  ex:["lunges","legpress","abcrunch","chestpress","triceppush","reardelt"]},
     {label:"Back + Biceps",   short:"Back+Bi",    ex:["smithsq","legcurl","cablecrunch","latpull","bicepcurl","reardelt"]},
     {label:"Shoulders",       short:"Shoulders",  ex:["smithsq","legext","torso","shoulderpress","lateralraise","reardelt"]},
   ]},
   B:{ name:"4-day body-part", note:"Chest · Back · Shoulders · Arms. Both upper moves hit the same muscle, so more volume per muscle per day, ~1.5x/week each.", days:[
-    {label:"Chest",     short:"Chest",     ex:["smithsq","legpress","abcrunch","chestpress","pecdeck","reardelt"]},
+    {label:"Chest",     short:"Chest",     ex:["lunges","legpress","abcrunch","chestpress","pecdeck","reardelt"]},
     {label:"Back",      short:"Back",      ex:["smithsq","legcurl","cablecrunch","latpull","seatedrow","reardelt"]},
     {label:"Shoulders", short:"Shoulders", ex:["smithsq","legext","torso","shoulderpress","lateralraise","reardelt"]},
     {label:"Arms",      short:"Arms",      ex:["smithsq","calfraise","abcrunch","bicepcurl","triceppush","reardelt"]},
   ]},
   C:{ name:"2-day upper A/B", note:"Chest+Back one day, Shoulders+Row the next. Everything upper is hit every 2 days (3x/week). Simplest and quickest; arms get indirect work only.", days:[
-    {label:"Chest + Back",     short:"Chest+Back",    ex:["smithsq","legpress","abcrunch","chestpress","latpull","reardelt"]},
+    {label:"Chest + Back",     short:"Chest+Back",    ex:["lunges","legpress","abcrunch","chestpress","latpull","reardelt"]},
     {label:"Shoulders + Row",  short:"Shldr+Row",     ex:["smithsq","legcurl","cablecrunch","shoulderpress","seatedrow","reardelt"]},
   ]},
 };
@@ -2511,7 +2512,7 @@ function renderSplitSettings(main){
   const sp = ensureSplit();
   const sec = el("div",{class:"settingsSection"});
   sec.appendChild(el("div",{class:"bigTitle", style:"font-size:20px; margin-bottom:6px;"},["Split Settings"]));
-  sec.appendChild(el("div",{class:"spNote"},["Every day: Smith squat + 1 leg machine + 1 abs + 2 upper-body + rear delts = 6 exercises. The plan decides what the upper-body pair is."]));
+  sec.appendChild(el("div",{class:"spNote"},["Every day: Smith squat (lunges on Day 1) + 1 leg machine + 1 abs + 2 upper-body + rear delts = 6 exercises. The plan decides what the upper-body pair is."]));
 
   sec.appendChild(el("label",{class:"lbl"},["Split plan"]));
   Object.entries(SPLIT_PLANS).forEach(([id,p])=>{
