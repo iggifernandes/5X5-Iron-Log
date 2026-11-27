@@ -387,6 +387,30 @@
   .spCfgName{flex:1; min-width:0; background:var(--surface); border:1px solid var(--surface-alt); border-radius:5px; padding:5px 7px; color:var(--text); font-size:12px;}
   .spCfgNum{width:54px; background:var(--surface); border:1px solid var(--surface-alt); border-radius:5px; padding:5px 4px; color:var(--amber); font-family:'SF Mono',monospace; font-size:11px; text-align:center;}
   .spCfgUnit{font-size:9px; color:var(--text-faint); width:26px;}
+
+  /* ---------- 100-rep challenge ---------- */
+  .modeBtn{font-size:10px; letter-spacing:0.08em;}
+  .hLoadRow{display:flex; align-items:center; gap:5px; margin:2px 0 6px; font-size:11px; color:var(--text-faint);}
+  .hLbl{font-size:10px; color:var(--text-faint); font-family:'SF Mono',monospace;}
+  .hLoadVal{margin-left:auto; font-size:17px; font-weight:800; color:var(--amber);}
+  .hCard{border:1px solid var(--surface-alt); border-radius:9px; padding:6px 8px; margin-bottom:6px; background:rgba(41,37,36,0.3);}
+  .hCard.done{border-color:rgba(52,211,153,0.5); background:rgba(52,211,153,0.07);}
+  .hTop{display:flex; align-items:center; gap:5px;}
+  .hTag{font-size:9px; text-transform:uppercase; letter-spacing:0.1em; color:var(--text-faint); width:54px;}
+  .hName{flex:1; min-width:0; background:transparent; border:none; border-bottom:1px dashed var(--surface-alt); color:var(--text); font-size:13px; font-weight:700; padding:2px 0;}
+  .hWt{width:50px; background:var(--surface); border:1px solid var(--surface-alt); border-radius:5px; padding:3px 2px; color:var(--amber); font-size:12px; text-align:center;}
+  .hUnit{font-size:9px; color:var(--text-faint);}
+  .hTime{font-size:15px; font-weight:800; color:var(--text); width:46px; text-align:right;}
+  .hBar{position:relative; height:20px; border-radius:5px; background:rgba(0,0,0,0.35); border:1px solid var(--surface-alt); margin:5px 0; overflow:hidden;}
+  .hFill{position:absolute; left:0; top:0; bottom:0; background:rgba(178,58,46,0.55);}
+  .hCard.done .hFill{background:rgba(52,211,153,0.5);}
+  .hCount{position:relative; display:block; text-align:center; line-height:20px; font-size:12px; font-weight:800; color:var(--text);}
+  .hBtns{display:flex; gap:5px;}
+  .hBtn{flex:1; padding:6px 0; border-radius:6px; border:1px solid var(--surface-alt); background:var(--surface); color:var(--amber); font-family:'SF Mono',monospace; font-size:13px; font-weight:800; cursor:pointer;}
+  .hBtn.undo{flex:0 0 36px; color:var(--text-faint);}
+  .hBtn:disabled{opacity:0.35; cursor:default;}
+  .hHist{font-size:9px; color:var(--text-faint); margin-top:4px;}
+  .hTotal{display:flex; justify-content:space-between; font-size:12px; font-weight:800; color:var(--text-dim); margin:2px 2px 6px;}
 </style>
 </head>
 <body>
@@ -405,7 +429,7 @@ const MICRO_PLATES = [1,0.75,0.5,0.25];
 
 const MIN_STEP = Math.min(...MICRO_PLATES); // finest increment achievable per side with available plates
 const DELETE_PASSWORD = "0822";
-const APP_VERSION = "2.0.2"; // bump this on every meaningful release so devices can tell if they're stale
+const APP_VERSION = "2.1.0"; // bump this on every meaningful release so devices can tell if they're stale
 
 // 3-day split (Oct 2026 recalibration): full-depth back squat daily, leg press +
 // calf raise daily, ab machine daily, chest/triceps on Day 1, back/biceps on
@@ -2166,18 +2190,20 @@ function saveStoreAsync(){ return new Promise(res=>{ saveStore(); res(); }); }
    the 5x5 sessions, weights or history. The 5x5 / Split choice is stored per
    device (not synced) so the phone and laptop can differ. */
 const MODE_KEY = "ironlog_mode";
-function getSavedMode(){ try{ return localStorage.getItem(MODE_KEY)==="split" ? "split" : "5x5"; }catch(e){ return "5x5"; } }
+function getSavedMode(){ try{ const v = localStorage.getItem(MODE_KEY); return (v==="split"||v==="hundred") ? v : "5x5"; }catch(e){ return "5x5"; } }
 function saveMode(m){ try{ localStorage.setItem(MODE_KEY, m); }catch(e){} }
 ui.mode = getSavedMode();
 ui.splitDay = null; ui.splitDayPlan = null; ui.splitStatus = {}; ui.splitOver = {};
 ui.splitEnergy = null; ui.splitDate = null; ui.splitLift = "smithsq"; ui.splitFlash = null;
 ui.splitExpanded = null; ui.splitConfirmDeleteId = null;
+ui.hd = null; ui.hundredFlash = null; ui.hundredExpanded = null; ui.hundredConfirmDeleteId = null; ui.hundredResetArm = false;
 
 function switchMode(m){
   if(ui.mode===m) return;
   ui.mode = m; saveMode(m);
   ui.logDraft = null; ui.tab = "today";
   if(window._ironLogClockInterval){ clearInterval(window._ironLogClockInterval); window._ironLogClockInterval = null; }
+  if(window._hundredTimer){ clearInterval(window._hundredTimer); window._hundredTimer = null; }
   render();
 }
 
@@ -2563,6 +2589,234 @@ function renderSplitSettings(main){
   main.appendChild(el("div",{class:"lbl"},["App settings (shared by 5×5 and Split)"]));
 }
 
+/* ================= 100-REP CHALLENGE (Nov 2026) =================
+   100 reps each of squat / chest / back / shoulders at a light load
+   (default 40% of bodyweight). Progress is TIME to finish 100 reps, not weight:
+   beat your last time, then add a little load. Own data in state.hundred; the
+   unfinished session is kept on this device so a reload mid-workout loses nothing. */
+const HUNDRED_EX = [
+  {key:"squat",    label:"Squat",     def:"Smith Squat"},
+  {key:"chest",    label:"Chest",     def:"Chest Press"},
+  {key:"back",     label:"Back",      def:"Seated Row"},
+  {key:"shoulder", label:"Shoulders", def:"Shoulder Press"},
+];
+const HUNDRED_DRAFT_KEY = "ironlog_hundred_draft";
+
+function ensureHundred(){
+  if(!state.hundred || typeof state.hundred!=="object"){
+    state.hundred = {pct:40, bw:null, names:{}, weights:{}, sessions:[]};
+    saveStoreLocalOnly(); // empty structure only — not a user change, so don't stamp a new sync time
+  }
+  const h = state.hundred;
+  if(!(h.pct>0)) h.pct = 40;
+  if(!h.names) h.names = {}; if(!h.weights) h.weights = {};
+  if(!Array.isArray(h.sessions)) h.sessions = [];
+  return h;
+}
+function hBodyweight(){
+  const h = ensureHundred();
+  if(h.bw>0) return h.bw;
+  const m = (state.measurements||[]).filter(x=>x && x.weight>0).sort((a,b)=>a.date.localeCompare(b.date));
+  return m.length ? m[m.length-1].weight : 65;
+}
+function hLoad(){ return Math.round(hBodyweight()*ensureHundred().pct/100*4)/4; }
+function hWeight(k){ const w = ensureHundred().weights[k]; return (w>0) ? w : hLoad(); }
+function hName(k){ const n = ensureHundred().names[k]; const d = HUNDRED_EX.find(x=>x.key===k); return (n && String(n).trim()) || d.def; }
+function fmtTime(sec){
+  sec = Math.max(0, Math.round(sec));
+  const m = Math.floor(sec/60), s = sec%60;
+  return String(m).padStart(2,"0")+":"+String(s).padStart(2,"0");
+}
+function hDraft(){
+  if(!ui.hd){
+    try{ ui.hd = JSON.parse(localStorage.getItem(HUNDRED_DRAFT_KEY)||"null"); }catch(e){ ui.hd = null; }
+  }
+  if(!ui.hd || typeof ui.hd!=="object" || !ui.hd.ex){
+    ui.hd = {date:todayLocal(), ex:{}};
+  }
+  HUNDRED_EX.forEach(d=>{ if(!ui.hd.ex[d.key]) ui.hd.ex[d.key] = {reps:0, start:null, end:null, adds:[]}; });
+  return ui.hd;
+}
+function hSaveDraft(){ try{ localStorage.setItem(HUNDRED_DRAFT_KEY, JSON.stringify(ui.hd)); }catch(e){} }
+function hSecs(e){ return e.start ? ((e.end || Date.now()) - e.start)/1000 : 0; }
+function hAdd(k, n){
+  const e = hDraft().ex[k];
+  if(e.reps>=100) return;
+  if(!e.start) e.start = Date.now();
+  const add = Math.min(n, 100-e.reps);
+  e.reps += add; e.adds.push(add);
+  if(e.reps>=100 && !e.end) e.end = Date.now();
+  hSaveDraft();
+}
+function hUndo(k){
+  const e = hDraft().ex[k];
+  if(!e.adds.length) return;
+  e.reps -= e.adds.pop();
+  if(e.reps<100) e.end = null;
+  if(e.reps<=0){ e.reps = 0; e.start = null; e.end = null; }
+  hSaveDraft();
+}
+function hHistoryFor(k){
+  const done = ensureHundred().sessions.filter(s=>s.lifts && s.lifts[k] && s.lifts[k].reps>=100)
+    .sort((a,b)=> a.date.localeCompare(b.date) || (Number(a.id)-Number(b.id)));
+  if(!done.length) return null;
+  const last = done[done.length-1].lifts[k];
+  const best = Math.min.apply(null, done.map(s=>s.lifts[k].secs));
+  return {last, best};
+}
+
+function renderHundred(main){
+  const h = ensureHundred();
+  const d = hDraft();
+  if(window._hundredTimer){ clearInterval(window._hundredTimer); window._hundredTimer = null; }
+  const content = el("div",{class:"todayContent hundredContent"});
+  main.appendChild(content);
+
+  function paint(){
+    content.innerHTML = "";
+    if(ui.hundredFlash){
+      content.appendChild(el("div",{class:"banner", style:"border-color:rgba(52,211,153,0.4); color:#7fe8a8; background:rgba(52,211,153,0.08);"},[ui.hundredFlash]));
+      ui.hundredFlash = null;
+    }
+    content.appendChild(el("div",{class:"eyebrow", style:"margin-top:4px;"},[ el("span",{class:"dot"}), el("span",null,["100-rep challenge"]) ]));
+    content.appendChild(el("div",{class:"bigTitle spTitle"},["100 · 100 · 100 · 100"]));
+
+    // load line: % of bodyweight
+    const pctIn = el("input",{type:"number", class:"spCfgNum", step:"1", value:h.pct, onChange:(e)=>{
+      const v = parseFloat(e.target.value); if(v>0 && v<=200){ h.pct = v; h.weights = {}; saveStore(); paint(); } }});
+    const bwIn = el("input",{type:"number", class:"spCfgNum", step:"0.5", value:hBodyweight(), onChange:(e)=>{
+      const v = parseFloat(e.target.value); if(v>0){ h.bw = v; h.weights = {}; saveStore(); paint(); } }});
+    content.appendChild(el("div",{class:"hLoadRow"},[
+      pctIn, el("span",{class:"hLbl"},["% of"]), bwIn, el("span",{class:"hLbl"},["kg body ="]),
+      el("span",{class:"hLoadVal mono"},[fmt(hLoad())+" kg"])
+    ]));
+
+    HUNDRED_EX.forEach(def=>{
+      const k = def.key, e = d.ex[k];
+      const done = e.reps>=100;
+      const hist = hHistoryFor(k);
+      const nameIn = el("input",{type:"text", class:"hName", value:hName(k), onChange:(ev)=>{
+        const v = ev.target.value.trim(); if(v && v!==def.def) h.names[k]=v; else delete h.names[k]; saveStore(); }});
+      const wIn = el("input",{type:"number", class:"hWt mono", step:"0.25", value:hWeight(k), onChange:(ev)=>{
+        const v = parseFloat(ev.target.value); if(v>0){ h.weights[k]=v; saveStore(); } }});
+      const card = el("div",{class:"hCard"+(done?" done":"")},[
+        el("div",{class:"hTop"},[
+          el("span",{class:"hTag mono"},[def.label]),
+          nameIn, wIn, el("span",{class:"hUnit mono"},["kg"]),
+          el("span",{class:"hTime mono", "data-hk":k},[fmtTime(hSecs(e))])
+        ]),
+        el("div",{class:"hBar"},[
+          el("div",{class:"hFill", style:`width:${e.reps}%`}),
+          el("span",{class:"hCount mono"},[`${e.reps} / 100`+(done?"  ✓":"")])
+        ]),
+        el("div",{class:"hBtns"},[
+          el("button",{class:"hBtn undo", type:"button", onClick:()=>{ hUndo(k); paint(); }},["↶"]),
+          ...[1,5,10,25].map(n=> el("button",Object.assign({class:"hBtn", type:"button", onClick:()=>{ hAdd(k,n); paint(); }}, done?{disabled:"disabled"}:{}),["+"+n]))
+        ]),
+        hist ? el("div",{class:"hHist mono"},[`Last ${fmtTime(hist.last.secs)} @ ${fmt(hist.last.weight)}kg · Best ${fmtTime(hist.best)}`]) : null
+      ]);
+      content.appendChild(card);
+    });
+
+    const total = HUNDRED_EX.reduce((a,x)=>a+hSecs(d.ex[x.key]),0);
+    const totalReps = HUNDRED_EX.reduce((a,x)=>a+d.ex[x.key].reps,0);
+    content.appendChild(el("div",{class:"hTotal mono"},[ el("span",null,[`${totalReps} / 400 reps`]), el("span",{"data-htotal":"1"},["Time "+fmtTime(total)]) ]));
+
+    const msg = el("div",{class:"spMsg", style:"display:none;"},["Log at least one rep first."]);
+    const actionRow = el("div",{class:"actionRow"});
+    actionRow.appendChild(el("input",{type:"date", class:"dateBtn", value:d.date, max:todayLocal(), onChange:(ev)=>{ d.date = ev.target.value || todayLocal(); hSaveDraft(); }}));
+    actionRow.appendChild(el("button",{class:"btn btn-primary actionMiddle", type:"button", onClick:()=>{
+      if(totalReps<=0){ msg.style.display="block"; return; }
+      const lifts = {};
+      HUNDRED_EX.forEach(x=>{
+        const e = d.ex[x.key];
+        lifts[x.key] = {name:hName(x.key), weight:hWeight(x.key), reps:e.reps, secs:Math.round(hSecs(e))};
+      });
+      h.sessions.push({id:String(Date.now()), date:d.date||todayLocal(), bw:hBodyweight(), pct:h.pct, lifts, totalSecs:Math.round(total)});
+      saveStore();
+      ui.hd = null; try{ localStorage.removeItem(HUNDRED_DRAFT_KEY); }catch(err){}
+      ui.hundredFlash = "Challenge saved. Beat these times next time, then add a little load.";
+      render();
+    }},["Save challenge"]));
+    content.appendChild(actionRow);
+    content.appendChild(msg);
+    content.appendChild(el("button",{class:"linkBtn", type:"button", onClick:()=>{
+      if(ui.hundredResetArm){ ui.hd = null; ui.hundredResetArm = false; try{ localStorage.removeItem(HUNDRED_DRAFT_KEY); }catch(err){} hDraft(); paint(); }
+      else { ui.hundredResetArm = true; paint(); }
+    }},[ ui.hundredResetArm ? "Tap again to clear this attempt" : "Clear this attempt" ]));
+    requestAnimationFrame(fitTodayToScreen);
+  }
+  paint();
+
+  // live timers: update only the time labels so buttons/inputs are never re-created mid-tap
+  window._hundredTimer = setInterval(()=>{
+    const any = document.querySelector("[data-hk]");
+    if(!any){ clearInterval(window._hundredTimer); window._hundredTimer = null; return; }
+    let total = 0;
+    HUNDRED_EX.forEach(x=>{
+      const e = ui.hd && ui.hd.ex[x.key]; if(!e) return;
+      total += hSecs(e);
+      const node = document.querySelector('[data-hk="'+x.key+'"]');
+      if(node) node.textContent = fmtTime(hSecs(e));
+    });
+    const tn = document.querySelector('[data-htotal]');
+    if(tn) tn.textContent = "Time "+fmtTime(total);
+  }, 1000);
+}
+
+function renderHundredHistory(main){
+  const h = ensureHundred();
+  const list = h.sessions.slice().sort((a,b)=> b.date.localeCompare(a.date) || (Number(b.id)-Number(a.id)));
+  if(!list.length){
+    main.appendChild(el("div",{class:"emptyState"},["No 100-rep challenges saved yet. Do one from the Today tab."]));
+    return;
+  }
+  main.appendChild(el("div",{style:"margin-bottom:8px;"},[ el("span",{class:"mono", style:"font-size:11px; color:var(--text-faint);"},[`${list.length} challenges saved`]) ]));
+  list.forEach(s=>{
+    const isOpen = ui.hundredExpanded===s.id;
+    const item = el("div",{class:"histItem"});
+    item.appendChild(el("button",{class:"histHead", type:"button", onClick:()=>{ ui.hundredExpanded = isOpen?null:s.id; render(); }},[
+      el("div",{class:"left"},[
+        el("span",{class:"wtype"},[`${fmt(s.lifts.squat ? s.lifts.squat.weight : 0)}kg · ${fmtTime(s.totalSecs||0)}`]),
+        el("span",{class:"wdate"},[s.date])
+      ]),
+      (()=>{ const i=icon("chevronDown",16); i.style.color="#78716c"; i.style.transform = isOpen?"rotate(180deg)":"none"; return i; })()
+    ]));
+    if(isOpen){
+      const body = el("div",{class:"histBody"});
+      body.appendChild(el("div",{class:"histRow"},[ el("span",{class:"lname"},["Load"]), el("span",{class:"rval"},[`${s.pct}% of ${fmt(s.bw)}kg`]) ]));
+      HUNDRED_EX.forEach(def=>{
+        const L = s.lifts && s.lifts[def.key]; if(!L) return;
+        const right = el("div",{style:"display:flex; align-items:center; gap:8px;"},[
+          el("span",{class:"rval"},[`${L.reps}/100 · ${fmtTime(L.secs)} · ${fmt(L.weight)}kg`])
+        ]);
+        if(L.reps>=100){ const i=icon("check",13); i.style.color="#34d399"; right.appendChild(i); }
+        body.appendChild(el("div",{class:"histRow"},[ el("span",{class:"lname"},[`${def.label} · ${L.name||def.def}`]), right ]));
+      });
+      const delRow = el("div",{class:"delRow"});
+      if(ui.hundredConfirmDeleteId===s.id){
+        const pw = el("input",{type:"password", placeholder:"Enter password to delete", style:"width:130px; background:var(--bg); border:1px solid var(--surface-alt); border-radius:5px; padding:4px 7px; color:var(--text); font-size:11px; margin-right:6px;"});
+        const err = el("span",{style:"font-size:10px; color:#f4a5a5; display:none; margin-right:6px;"},["Wrong password"]);
+        const doDelete = ()=>{
+          if(pw.value===DELETE_PASSWORD){
+            h.sessions = h.sessions.filter(x=>x.id!==s.id);
+            saveStore(); ui.hundredConfirmDeleteId = null; render();
+          } else { err.style.display="inline"; pw.value=""; }
+        };
+        pw.addEventListener("keydown",(e)=>{ if(e.key==="Enter") doDelete(); });
+        delRow.appendChild(pw); delRow.appendChild(err);
+        delRow.appendChild(el("a",{onClick:doDelete},["Delete"]));
+        delRow.appendChild(el("a",{onClick:()=>{ ui.hundredConfirmDeleteId=null; render(); }},["Cancel"]));
+      } else {
+        delRow.appendChild(el("a",{onClick:()=>{ ui.hundredConfirmDeleteId=s.id; render(); }},["Delete"]));
+      }
+      body.appendChild(delRow);
+      item.appendChild(body);
+    }
+    main.appendChild(item);
+  });
+}
+
 /* ---------------- top-level render ---------------- */
 function render(){
   const app = document.getElementById("app");
@@ -2576,6 +2830,7 @@ function render(){
   header.appendChild(el("div",{class:"modeRow"},[
     el("button",{class:"modeBtn"+(ui.mode==="5x5"?" active":""), type:"button", onClick:()=>switchMode("5x5")},["5×5"]),
     el("button",{class:"modeBtn"+(ui.mode==="split"?" active":""), type:"button", onClick:()=>switchMode("split")},["Split"]),
+    el("button",{class:"modeBtn"+(ui.mode==="hundred"?" active":""), type:"button", onClick:()=>switchMode("hundred")},["100 reps"]),
   ]));
   header.appendChild(el("p",{class:"tag"},[t("tagline",lang)]));
   if(window._ironLogUpdateAvailable){
@@ -2587,6 +2842,14 @@ function render(){
   app.appendChild(header);
 
   const main = el("main",{id:"mainContent"});
+  if(window._hundredTimer && ui.mode!=="hundred"){ clearInterval(window._hundredTimer); window._hundredTimer = null; }
+  if(ui.mode==="hundred"){
+    if(ui.tab==="log" || ui.tab==="progress") ui.tab = "today";
+    if(ui.tab==="today") renderHundred(main);
+    else if(ui.tab==="history") renderHundredHistory(main);
+    else if(ui.tab==="measurements") renderMeasurements(main);
+    else if(ui.tab==="settings") renderSettings(main);
+  } else
   if(ui.mode==="split"){
     if(ui.tab==="log") ui.tab = "today";
     if(ui.tab==="today") renderSplitToday(main);
@@ -2606,6 +2869,7 @@ function render(){
   const nav = el("nav");
   const inner = el("div",{class:"inner"});
   if(ui.mode==="split") inner.style.gridTemplateColumns = "repeat(5,1fr)";
+  if(ui.mode==="hundred") inner.style.gridTemplateColumns = "repeat(4,1fr)";
   [
     {key:"today", i:"flame", label:t("today",lang)},
     {key:"log", i:"plus", label:t("log",lang)},
@@ -2613,7 +2877,7 @@ function render(){
     {key:"history", i:"history", label:t("history",lang)},
     {key:"measurements", i:"ruler", label: lang==="en"?"Body":"Tubuh"},
     {key:"settings", i:"settings", label:t("settings",lang)},
-  ].filter(item=> ui.mode!=="split" || item.key!=="log").forEach(item=>{
+  ].filter(item=> ui.mode==="hundred" ? ["today","history","measurements","settings"].includes(item.key) : (ui.mode!=="split" || item.key!=="log")).forEach(item=>{
     const btn = el("button",{class: ui.tab===item.key?"active":"", onClick:()=>{
       if(item.key!=="log") ui.logDraft=null;
       if(item.key!=="today" && window._ironLogClockInterval){ clearInterval(window._ironLogClockInterval); window._ironLogClockInterval=null; }
